@@ -805,6 +805,265 @@ async function exportAll(){
     X.writeFile(wb,`RentPlanner_all_data_${xlStamp()}.xlsx`);el.textContent='Done.'}catch(e){el.textContent='';toast(msg(e))}
 }
 
+/* ---------- Template for upload (Excel, written without any external library) ---------- */
+const xlC=n=>{let s='';for(n++;n>0;n=Math.floor((n-1)/26))s=String.fromCharCode(65+(n-1)%26)+s;return s};
+const xlX=s=>String(s).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const xlCrcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const xlCrc=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=xlCrcT[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+function xlZip(files){   // files: [[name,string]] -> Uint8Array (zip, stored)
+  const te=new TextEncoder(),parts=[],cen=[];let off=0;
+  const u16=n=>[n&255,(n>>8)&255],u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];
+  files.forEach(([nm,tx])=>{const nb=te.encode(nm),d=te.encode(tx),c=xlCrc(d);
+    const h=new Uint8Array([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nb.length),...u16(0)]);
+    parts.push(h,nb,d);
+    cen.push(new Uint8Array([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nb);
+    off+=h.length+nb.length+d.length});
+  const cs=cen.reduce((a,x)=>a+x.length,0),end=new Uint8Array([0x50,0x4b,5,6,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cs),...u32(off),...u16(0)]);
+  const all=[...parts,...cen,end],out=new Uint8Array(all.reduce((a,x)=>a+x.length,0));let p=0;all.forEach(x=>{out.set(x,p);p+=x.length});return out;
+}
+// styles: 0 normal, 1 header (optional), 2 header (required), 3 date, 4 wrapped text, 5 grey italic note, 6 title, 7 check, 8 header (calculated), 9 bold, 10 list header, 11 text on blue band
+const XL_STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts>
+<fonts count="6"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><i/><sz val="10"/><color rgb="FF666666"/><name val="Arial"/></font><font><b/><sz val="14"/><color rgb="FF1F3B57"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FF333333"/><name val="Arial"/></font></fonts>
+<fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2F5D8A"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFC0561A"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDCE8F4"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F3F3"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBBBBBB"/></left><right style="thin"><color rgb="FFBBBBBB"/></right><top style="thin"><color rgb="FFBBBBBB"/></top><bottom style="thin"><color rgb="FFBBBBBB"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="12"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="4" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="4" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>
+<dxfs count="4"><dxf><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill><font><color rgb="FF9C0006"/></font></dxf><dxf><fill><patternFill><bgColor rgb="FFFFEB9C"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFD0D0D0"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill><font><color rgb="FF006100"/></font></dxf></dxfs>
+</styleSheet>`;
+function xlSheetXml(sp){
+  let x=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`;
+  if(sp.tab)x+=`<sheetPr><tabColor rgb="${sp.tab}"/></sheetPr>`;
+  x+=`<sheetViews><sheetView workbookViewId="0"${sp.grid===false?' showGridLines="0"':''}>${sp.freeze?`<pane xSplit="${sp.freeze[0]}" ySplit="${sp.freeze[1]}" topLeftCell="${xlC(sp.freeze[0])}${sp.freeze[1]+1}" activePane="bottomRight" state="frozen"/>`:''}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="13"/>`;
+  x+='<cols>'+(sp.cols||[]).map((c,i)=>`<col min="${i+1}" max="${i+1}" width="${c.w||12}" customWidth="1"${c.hidden?' hidden="1"':''}${c.s?` style="${c.s}"`:''}/>`).join('')+'</cols><sheetData>';
+  const sh=sp.sh||[],shr=sh.length?sh[0].r2:0,nR=Math.max(sp.rows.length,shr);
+  for(let ri=0;ri<nR;ri++){const r=ri+1;let row=sp.rows[ri];const isSh=sh.length&&r>=2&&r<=shr;if(!row&&!isSh&&!(sp.rowH&&sp.rowH[r]))continue;
+    if(isSh&&r>2){row=(row||[]).slice();sh.forEach((h,k)=>{row[h.c]={sf:k,s:h.s}})}
+    x+=`<row r="${r}"${sp.rowH&&sp.rowH[r]?` ht="${sp.rowH[r]}" customHeight="1"`:''}>`;
+    (row||[]).forEach((c,ci)=>{if(c==null||c==='')return;const ref=xlC(ci)+r;
+      if(typeof c==='object'&&c.sf!==undefined){x+=`<c r="${ref}"${c.s?` s="${c.s}"`:''}><f t="shared" si="${c.sf}"/></c>`;return}
+      if(typeof c==='object'&&c.f!==undefined&&isSh&&r===2){const k=sh.findIndex(h=>h.c===ci);if(k>=0){x+=`<c r="${ref}"${c.s?` s="${c.s}"`:''}><f t="shared" ref="${xlC(ci)}2:${xlC(ci)}${shr}" si="${k}">${xlX(c.f)}</f></c>`;return}}
+      if(typeof c==='number')x+=`<c r="${ref}"><v>${c}</v></c>`;
+      else if(typeof c==='string')x+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xlX(c)}</t></is></c>`;
+      else if(c.f!==undefined)x+=`<c r="${ref}"${c.s?` s="${c.s}"`:''}><f>${xlX(c.f)}</f></c>`;
+      else if(typeof c.v==='number')x+=`<c r="${ref}"${c.s?` s="${c.s}"`:''}><v>${c.v}</v></c>`;
+      else x+=`<c r="${ref}"${c.s?` s="${c.s}"`:''} t="inlineStr"><is><t xml:space="preserve">${xlX(c.v)}</t></is></c>`});
+    x+='</row>'}
+  x+='</sheetData>';
+  if(sp.merge&&sp.merge.length)x+=`<mergeCells count="${sp.merge.length}">${sp.merge.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`;
+  let pr=1;(sp.cf||[]).forEach(c=>{x+=`<conditionalFormatting sqref="${c.sq}"><cfRule type="expression" dxfId="${c.d}" priority="${pr++}"><formula>${xlX(c.f)}</formula></cfRule></conditionalFormatting>`});
+  if(sp.dv&&sp.dv.length){x+=`<dataValidations count="${sp.dv.length}">`+sp.dv.map(d=>{
+      const t=d.t||'list',tx=(s,n)=>String(s).slice(0,n);
+      return `<dataValidation type="${t}"${d.op?` operator="${d.op}"`:''} allowBlank="1" showInputMessage="1" showErrorMessage="1" errorStyle="stop" errorTitle="${xlX(tx(d.et||'Invalid value',32))}" error="${xlX(tx(d.e||'Value not allowed here.',255))}"${d.p?` promptTitle="${xlX(tx(d.pt||'Info',32))}" prompt="${xlX(tx(d.p,255))}"`:''} sqref="${d.sq}"><formula1>${xlX(d.f1)}</formula1>${d.f2!==undefined?`<formula2>${xlX(d.f2)}</formula2>`:''}</dataValidation>`}).join('')+'</dataValidations>'}
+  return x+`<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
+}
+function xlBook(sheets,names){
+  const files=[['[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`],
+    ['_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${sheets.map((s,i)=>`<sheet name="${xlX(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets><definedNames>${names.map(n=>`<definedName name="${n[0]}">${xlX(n[1])}</definedName>`).join('')}</definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`],
+    ['xl/_rels/workbook.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['xl/styles.xml',XL_STYLES],...sheets.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`,xlSheetXml(s)])];
+  return xlZip(files);
+}
+
+function uploadTemplate(){
+  const NA=1000,NP=500,NL=2500,LIFE=['Active','Scrapped','Sold','Lost'],INS=['Inspection to be planned','Inspection planned','Inspection done'],AUD=['none','requested','approved','non_compliant'],YN=['Yes','No'];
+  const types=lk('asset_type'),ents=S.E.filter(e=>e.active),entBW=ents.filter(e=>e.main_entity!=='External supplier'),entExt=ents.filter(e=>e.main_entity==='External supplier');
+  const dupN=new Set(S.U.map(u=>u.name).filter((n,i,a)=>a.indexOf(n)!==i)),usr=S.U.filter(u=>u.active).map(u=>dupN.has(u.name)?`${u.name} <${u.email||u.id}>`:u.name);
+  const mlk=MODEL_LIST,mlT=Object.keys(mlk);
+  // ---- Lists sheet
+  const LISTS=[['lst_asset_type','Asset type',types],['lst_entity','Entity (all active)',ents.map(e=>e.name)],['lst_entity_bw','Entity (not External supplier)',entBW.map(e=>e.name)],['lst_entity_ext','External supplier entities',entExt.map(e=>e.name)],['lst_workshop','Workshop',lk('workshop')],['lst_project_type','Project type',lk('project_type')],['lst_commercial_area','Commercial area',lk('commercial_area')],['lst_fuel_energy','Fuel / energy',lk('fuel_energy')],['lst_operating_mode','Operating mode',lk('operating_mode')],
+    ...mlT.map(t=>['lst_'+mlk[t],t+' model',lk(mlk[t])]),['lst_user','Project manager (active users)',usr],['lst_lifecycle','Asset status',LIFE],['lst_yesno','Yes / No',YN],['lst_inspection','Inspection status',INS],['lst_audit','Quality audit status',AUD]];
+  const names=[],lrows=[],mx=Math.max(...LISTS.map(l=>l[2].length),1);
+  lrows[0]=LISTS.map(l=>({v:l[1],s:10}));
+  for(let i=0;i<mx;i++)lrows[i+1]=LISTS.map(l=>l[2][i]??'');
+  LISTS.forEach((l,i)=>names.push([l[0],`Lists!$${xlC(i)}$2:$${xlC(i)}$${Math.max(2,l[2].length+1)}`]));
+  const lists={name:'Lists',tab:'FF7F7F7F',cols:LISTS.map(()=>({w:26})),rows:lrows,freeze:[0,1],rowH:{1:32}};
+  // ---- Rules sheet (field state per asset type)
+  const lc=xlC(types.length),RT=`Rules!$B$1:$${lc}$1`,rrow=k=>2+AF_FIELDS.findIndex(f=>f[0]===k);
+  const rules={name:'Rules',tab:'FF7F7F7F',cols:[{w:34},...types.map(()=>({w:14}))],freeze:[1,1],rowH:{1:30},rows:[
+    [{v:'Field  \\  Asset type',s:10},...types.map(t=>({v:t,s:10}))],
+    ...AF_FIELDS.map(([k,l])=>[l,...types.map(t=>afState(t,k))]),
+    [],['0 = field not used for this type (leave empty)   ·   1 = optional   ·   2 = MANDATORY   — values taken from Admin > Asset fields at the time of the download.'],
+    ['Model list:',...types.map(t=>mlk[t]?'from the list':'free text')]]};
+  rules.cf=[{sq:`B2:${lc}${1+AF_FIELDS.length}`,d:1,f:'B2=2'},{sq:`B2:${lc}${1+AF_FIELDS.length}`,d:2,f:'B2=0'}];
+  // ---- helpers
+  const AR=c=>`Assets!$${c}$2:$${c}$${NA+1}`,PR=c=>`Projects!$${c}$2:$${c}$${NP+1}`,LR=c=>`'Project lines'!$${c}$2:$${c}$${NL+1}`;
+  const stF=(k,r)=>`IFERROR(INDEX(Rules!$B$${rrow(k)}:$${lc}$${rrow(k)},MATCH($B${r},${RT},0)),1)`;
+  // ---- Assets
+  const ACOL=[ // k,header,width,required,kind,af key
+    ['name','Asset name',24,1,'text'],['asset_type','Type',14,1,'list:lst_asset_type'],['entity','Owner (entity)',20,1,'list:lst_entity'],
+    ['model','Model',18,0,'text','model'],['length','Length',10,0,'num','length'],['design_pressure','Design pressure',12,0,'num','design_pressure'],['steam_flowrate','Steam flow rate',12,0,'num','steam_flowrate'],['net_power','Net power',10,0,'num','net_power'],
+    ['fuel_energy','Fuel / energy',16,0,'list:lst_fuel_energy','fuel_energy'],['operating_mode','Operating mode',16,0,'list:lst_operating_mode','operating_mode'],['ce','CE',8,0,'yn','ce'],['outdoor','Outdoor',8,0,'yn','outdoor'],
+    ['manufacture_date','Manufacture date',13,0,'date','manufacture_date'],['purchase_price','Purchase price',12,0,'num','purchase_price'],['supplier','Supplier',18,0,'text','supplier'],['purchase_order','Purchase order',16,0,'text','purchase_order'],['comments','Comments',30,0,'text','comments'],
+    ['lifecycle','Status (blank = Active)',14,0,'list:lst_lifecycle'],['destruction_date','Scrap date',12,0,'date'],['sale_date','Sale date',12,0,'date'],['loss_date','Loss date',12,0,'date'],['location_name','Location / client (Scrapped, Sold)',22,0,'text'],['active','Enabled (blank = Yes)',11,0,'yn']];
+  const aL={};ACOL.forEach((c,i)=>aL[c[0]]=xlC(i));const NAC=ACOL.length,aChk=xlC(NAC),aHelp=xlC(NAC+1);
+  const arows=[ACOL.map(c=>({v:c[1]+(c[3]?' *':''),s:c[3]?2:1})).concat([{v:'CHECK (do not fill)',s:8}])];
+  const dateOK=(c,r)=>`IF(AND(${c}${r}<>"",NOT(ISNUMBER(${c}${r}))),"A date is expected in column ${c}; ","")`;
+  for(let r=2;r<=2;r++){
+    const g=k=>`${aL[k]}${r}`,P=[];
+    P.push(`IF(${g('name')}="","Name required; ","")`,`IF(AND(${g('name')}<>"",COUNTIF(${AR('A')},${g('name')})>1),"Duplicate asset name; ","")`);
+    P.push(`IF(COUNTIF(lst_asset_type,${g('asset_type')})=0,"Type must be chosen in the list; ","")`,`IF(COUNTIF(lst_entity,${g('entity')})=0,"Owner must be chosen in the list; ","")`);
+    const ipC=`COUNTIFS(${LR('B')},${g('name')},${LR('R')},"In production")`;
+    ACOL.forEach(c=>{if(!c[5])return;const ref=g(c[0]),h=c[1];let reqc=`${stF(c[5],r)}=2`;
+      if(c[0]==='manufacture_date')reqc=`AND(${reqc},${ipC}=0)`;
+      P.push(`IF(AND(${reqc},${ref}=""),"${h} required; ","")`,`IF(AND(${stF(c[5],r)}=0,${ref}<>""),"${h} not used for this type; ","")`);
+      if(c[4]==='num')P.push(`IF(AND(${ref}<>"",OR(NOT(ISNUMBER(${ref})),${ref}<0)),"${h} must be a number ≥ 0; ","")`);
+      if(c[4]==='date')P.push(dateOK(aL[c[0]],r));
+      if(c[4]==='yn')P.push(`IF(AND(${ref}<>"",${ref}<>"Yes",${ref}<>"No"),"${h}: Yes or No; ","")`);
+      if(c[4].startsWith('list:'))P.push(`IF(AND(${ref}<>"",COUNTIF(${c[4].slice(5)},${ref})=0),"${h} must be chosen in the list; ","")`)});
+    mlT.forEach(t=>P.push(`IF(AND(${g('asset_type')}="${t}",${g('model')}<>"",COUNTIF(lst_${mlk[t]},${g('model')})=0),"Model must come from the ${t} model list; ","")`));
+    P.push(`IF(AND(${g('lifecycle')}<>"",COUNTIF(lst_lifecycle,${g('lifecycle')})=0),"Status: Active / Scrapped / Sold / Lost; ","")`);
+    [['Scrapped','destruction_date','Scrap date'],['Sold','sale_date','Sale date'],['Lost','loss_date','Loss date']].forEach(([s,k,h])=>{
+      P.push(`IF(AND(${g('lifecycle')}="${s}",${g(k)}=""),"${h} required; ","")`,`IF(AND(${g(k)}<>"",${g('lifecycle')}<>"${s}"),"${h} only for status ${s}; ","")`,
+        `IF(AND(ISNUMBER(${g(k)}),COUNTIFS(${LR('B')},${g('name')},${LR('D')},">"&${g(k)})>0),"${h} must be on/after the end of the asset's last project; ","")`)});
+    P.push(`IF(AND(OR(${g('lifecycle')}="Scrapped",${g('lifecycle')}="Sold"),${g('location_name')}=""),"Location required for Scrapped / Sold; ","")`,`IF(AND(${g('location_name')}<>"",${g('lifecycle')}<>"Scrapped",${g('lifecycle')}<>"Sold"),"Location only for Scrapped / Sold; ","")`);
+    P.push(`IF(AND(ISNUMBER(${g('manufacture_date')}),COUNTIFS(${LR('B')},${g('name')},${LR('C')},"<="&${g('manufacture_date')},${LR('R')},"<>In production")>0),"Manufacture date must be before all delivery dates; ","")`,
+      `IF(AND(${g('manufacture_date')}<>"",${ipC}>0),"Manufacture date = End date of its In production project: leave empty; ","")`);
+    const row=new Array(NAC).fill(null);
+    row[NAC]={f:`IF(COUNTA(A${r}:${xlC(NAC-1)}${r})=0,"",IF(${aHelp}${r}="","OK",${aHelp}${r}))`,s:7};
+    row[NAC+1]={f:`IF(COUNTA(A${r}:${xlC(NAC-1)}${r})=0,"",${P.join('&')})`};
+    arows[r-1]=row}
+  const adv=[],rg=(c)=>`${c}2:${c}${NA+1}`;
+  ACOL.forEach((c,i)=>{const L=xlC(i),sq=rg(L),k=c[4];
+    if(k.startsWith('list:'))adv.push({sq,f1:k.slice(5),pt:c[1],p:'Choose a value in the list.',e:'Value not in the list. Choose it in the drop-down (lists: Admin > Lists).'});
+    else if(k==='num')adv.push({sq,t:'decimal',op:'greaterThanOrEqual',f1:'0',pt:c[1],p:'Number ≥ 0 (use a decimal comma/point as in your Excel).',e:'A number ≥ 0 is expected.'});
+    else if(k==='date')adv.push({sq,t:'date',op:'between',f1:'36526',f2:'73050',pt:c[1],p:'Date dd/mm/yyyy.',e:'A valid date (dd/mm/yyyy) is expected.'});
+    else if(k==='yn')adv.push({sq,f1:'"Yes,No"',pt:c[1],p:'Yes or No.',e:'Yes or No.'})});
+  adv.push({sq:rg('D'),t:'custom',f1:`OR(${mlT.map(t=>`AND($B2="${t}",COUNTIF(lst_${mlk[t]},D2)>0)`).concat([`AND(${mlT.map(t=>`$B2<>"${t}"`).join(',')||'TRUE'})`]).join(',')})`,pt:'Model',p:'Hose / Fitting: model chosen in the model list of the type (see Lists). Other types: free text.',e:'For a '+mlT.join(' / ')+' the model must come from the model list of its type (sheet Lists).'});
+  adv.push({sq:rg('A'),t:'custom',f1:`COUNTIF($A$2:$A$${NA+1},A2)=1`,pt:'Asset name',p:'Unique name.',e:'This asset name is already used in the sheet.'});
+  const acf=[{sq:rg(aChk),d:0,f:`AND(${aChk}2<>"",${aChk}2<>"OK")`},{sq:rg(aChk),d:3,f:`${aChk}2="OK"`}];
+  ACOL.forEach((c,i)=>{if(!c[5])return;const L=xlC(i),sq=rg(L);
+    acf.push({sq,d:2,f:`AND($B2<>"",${stF(c[5],2)}=0)`},{sq,d:1,f:`AND($A2<>"",${stF(c[5],2)}=2,${L}2="")`})});
+  acf.push({sq:rg('A'),d:1,f:`AND(COUNTA($B2:$${xlC(NAC-1)}2)>0,A2="")`},{sq:rg('B'),d:1,f:`AND($A2<>"",B2="")`},{sq:rg('C'),d:1,f:`AND($A2<>"",C2="")`});
+  const assets={name:'Assets',tab:'FF2F5D8A',cols:ACOL.map(c=>({w:c[2],s:c[4]==='date'?3:undefined})).concat([{w:60},{w:5,hidden:true}]),rows:arows,sh:[{c:NAC,s:7,r2:NA+1},{c:NAC+1,r2:NA+1}],freeze:[1,1],rowH:{1:44},dv:adv,cf:acf};
+  // ---- Projects
+  const PCOL=[['name','Project name',28,1,'text'],['ptype','Project type',14,1,'list:lst_project_type'],['loc','Location / client (workshop for Maintenance and In production)',28,1,'text'],['area','Commercial area',18,1,'list:lst_commercial_area'],['pm','Project manager',24,1,'list:lst_user'],['pment','Owner entity (calculated)',18,0,'calc'],
+    ['comments','Comments',30,0,'text'],['ap1','Approve entity 1',18,0,'list:lst_entity'],['ap2','Approve entity 2',18,0,'list:lst_entity'],['ap3','Approve entity 3',18,0,'list:lst_entity'],['cost','Cost € (Maintenance only, whole number)',14,0,'int'],['qa','Quality audit (Maintenance only)',16,0,'list:lst_audit'],['qad','Quality audit approval date',14,0,'date'],['active','Enabled (blank = Yes)',11,0,'yn']];
+  [1,2,3].forEach(i=>PCOL.push([`b${i}e`,`Other assets owner ${i} – Owner (entity)`,20,0,'list:lst_entity_bw'],[`b${i}n`,`Other assets owner ${i} – Project name`,24,0,'text'],[`b${i}a`,`Other assets owner ${i} – Commercial area`,18,0,'list:lst_commercial_area'],[`b${i}p`,`Other assets owner ${i} – Project manager`,22,0,'list:lst_user'],[`b${i}c`,`Other assets owner ${i} – Comments`,26,0,'text']));
+  const pL={};PCOL.forEach((c,i)=>pL[c[0]]=xlC(i));const NPC=PCOL.length,pChk=xlC(NPC),pHelp=xlC(NPC+1);
+  const prows=[PCOL.map(c=>({v:c[1]+(c[3]?' *':''),s:c[3]?2:c[4]==='calc'?8:1})).concat([{v:'CHECK (do not fill)',s:8}])];
+  for(let r=2;r<=2;r++){const g=k=>`${pL[k]}${r}`,P=[],t=g('ptype');
+    P.push(`IF(${g('name')}="","Project name required; ","")`,`IF(AND(${g('name')}<>"",COUNTIF(${PR('A')},${g('name')})>1),"Duplicate project name; ","")`,
+      `IF(COUNTIF(lst_project_type,${t})=0,"Project type must be chosen in the list; ","")`,`IF(${g('loc')}="","Location / client required; ","")`,
+      `IF(AND(OR(${t}="Maintenance",${t}="In production"),${g('loc')}<>"",COUNTIF(lst_workshop,${g('loc')})=0),"For ${'Maintenance / In production'} the location must be a workshop of the list; ","")`,
+      `IF(COUNTIF(lst_commercial_area,${g('area')})=0,"Commercial area must be chosen in the list; ","")`,`IF(COUNTIF(lst_user,${g('pm')})=0,"Project manager must be chosen in the list; ","")`,
+      `IF(AND(${g('name')}<>"",COUNTIF(${LR('A')},${g('name')})=0),"No asset line in the sheet 'Project lines'; ","")`,
+      `IF(AND(${g('cost')}<>"",${t}<>"Maintenance"),"Cost only for Maintenance projects; ","")`,`IF(AND(${g('cost')}<>"",OR(NOT(ISNUMBER(${g('cost')})),${g('cost')}<0,${g('cost')}<>INT(${g('cost')}))),"Cost must be a whole number ≥ 0; ","")`,
+      `IF(AND(${g('qa')}<>"",${t}<>"Maintenance"),"Quality audit only for Maintenance projects; ","")`,`IF(AND(${g('qa')}<>"",COUNTIF(lst_audit,${g('qa')})=0),"Quality audit status: none / requested / approved / non_compliant; ","")`,
+      `IF(AND(${g('qa')}="approved",NOT(ISNUMBER(${g('qad')}))),"Approval date required for an approved quality audit; ","")`,`IF(AND(${g('qad')}<>"",${g('qa')}<>"approved"),"Approval date only for an approved audit; ","")`,
+      `IF(AND(ISNUMBER(${g('qad')}),${g('qad')}>TODAY()),"Approval date cannot be in the future; ","")`,dateOK(pL.qad,r),
+      `IF(AND(${g('active')}<>"",${g('active')}<>"Yes",${g('active')}<>"No"),"Enabled: Yes or No; ","")`);
+    ['ap1','ap2','ap3'].forEach(k=>P.push(`IF(AND(${g(k)}<>"",COUNTIF(lst_entity,${g(k)})=0),"Approve entity must be chosen in the list; ","")`));
+    [1,2,3].forEach(i=>{const e=g(`b${i}e`),n=g(`b${i}n`),a=g(`b${i}a`),p=g(`b${i}p`),c=g(`b${i}c`);
+      P.push(`IF(AND(${e}="",COUNTA(${n},${a},${p},${c})>0),"Block ${i}: choose the owner entity; ","")`,`IF(AND(${e}<>"",COUNTIF(lst_entity_bw,${e})=0),"Block ${i}: owner must be a non-External-supplier entity of the list; ","")`,
+        `IF(AND(${e}<>"",OR(${n}="",${a}="",${p}="")),"Block ${i}: project name, commercial area and project manager required; ","")`)});
+    const row=new Array(NPC).fill(null);
+    row[pL.pment.charCodeAt(0)-65]={f:`IF(${g('pm')}="","",IFERROR(INDEX(Lists!$A$2:$A$${mx+1},0),"")&"")`,s:0};
+    const emp=`COUNTA(A${r}:E${r})+COUNTA(G${r}:${xlC(NPC-1)}${r})=0`;row[NPC]={f:`IF(${emp},"",IF(${pHelp}${r}="","OK",${pHelp}${r}))`,s:7};row[NPC+1]={f:`IF(${emp},"",${P.join('&')})`};prows[r-1]=row}
+  // owner entity of the project manager = lookup in a hidden block of Lists (user label -> entity)
+  const ulbl=S.U.filter(u=>u.active),uIdx=LISTS.findIndex(l=>l[0]==='lst_user'),uE=LISTS.length+1;
+  lists.cols.push({w:4},{w:26});lists.rows[0][uE]={v:'Entity of the project manager',s:10};
+  ulbl.forEach((u,i)=>{lists.rows[i+1]=lists.rows[i+1]||new Array(uE).fill('');lists.rows[i+1][uE]=S.EN[u.entity_id]||''});
+  for(let r=2;r<=2;r++)prows[r-1][pL.pment.charCodeAt(0)-65]={f:`IF(${pL.pm}${r}="","",IFERROR(INDEX(Lists!$${xlC(uE)}$2:$${xlC(uE)}$${Math.max(2,ulbl.length+1)},MATCH(${pL.pm}${r},Lists!$${xlC(uIdx)}$2:$${xlC(uIdx)}$${Math.max(2,ulbl.length+1)},0)),""))`};
+  const pdv=[],pg=c=>`${c}2:${c}${NP+1}`;
+  PCOL.forEach((c,i)=>{const L=xlC(i),sq=pg(L),k=c[4];
+    if(k.startsWith('list:'))pdv.push({sq,f1:k.slice(5),pt:c[1].slice(0,32),p:'Choose a value in the list.',e:'Value not in the list. Choose it in the drop-down.'});
+    else if(k==='int')pdv.push({sq,t:'whole',op:'greaterThanOrEqual',f1:'0',pt:'Cost',p:'Whole number of euros ≥ 0, Maintenance only.',e:'A whole number ≥ 0 is expected.'});
+    else if(k==='date')pdv.push({sq,t:'date',op:'between',f1:'36526',f2:'73050',pt:'Date',p:'Date dd/mm/yyyy.',e:'A valid date (dd/mm/yyyy) is expected.'});
+    else if(k==='yn')pdv.push({sq,f1:'"Yes,No"',pt:'Enabled',p:'Yes or No.',e:'Yes or No.'})});
+  pdv.push({sq:pg('A'),t:'custom',f1:`COUNTIF($A$2:$A$${NP+1},A2)=1`,pt:'Project name',p:'Unique name; must be repeated identically in the sheet Project lines.',e:'This project name is already used in the sheet.'});
+  pdv.push({sq:pg('C'),t:'custom',f1:`IF(OR($B2="Maintenance",$B2="In production"),COUNTIF(lst_workshop,C2)>0,LEN(C2)>0)`,pt:'Location',p:'Free text (client) for Rental. For Maintenance / In production: a workshop of the list.',e:'For Maintenance / In production the location must be a workshop of the list (sheet Lists).'});
+  const pcf=[{sq:pg(pChk),d:0,f:`AND(${pChk}2<>"",${pChk}2<>"OK")`},{sq:pg(pChk),d:3,f:`${pChk}2="OK"`}];
+  PCOL.filter(c=>c[3]).forEach(c=>{const L=pL[c[0]];pcf.push({sq:pg(L),d:1,f:`AND(COUNTA($A2:$E2)+COUNTA($G2:$${xlC(NPC-1)}2)>0,${L}2="")`})});
+  const projects={name:'Projects',tab:'FF2F5D8A',cols:PCOL.map(c=>({w:c[2],s:c[4]==='date'?3:undefined})).concat([{w:60},{w:5,hidden:true}]),rows:prows,sh:[{c:pL.pment.charCodeAt(0)-65,r2:NP+1},{c:NPC,s:7,r2:NP+1},{c:NPC+1,r2:NP+1}],freeze:[1,1],rowH:{1:58},dv:pdv,cf:pcf};
+  // ---- Project lines
+  const LCOL=[['proj','Project name',28,1,'text'],['asset','Asset',24,1,'text'],['del','Delivery date',13,1,'date'],['end','End date',13,1,'date'],['dc','Delivery confirmed',11,0,'yn'],['ec','End confirmed',11,0,'yn'],['com','Comments',28,0,'text'],
+    ['tf','Transfer from previous client (Rental)',13,0,'yn'],['tt','Transfer to next client (Rental)',13,0,'yn'],['wr','Return to the workshop confirmed (Rental)',14,0,'yn'],['rt','Returned to (workshop)',18,0,'list:lst_workshop'],['cd','Collection date at the workshop',13,0,'date'],['rd','Return date at the workshop',13,0,'date'],
+    ['is','Inspection status (Rental)',20,0,'list:lst_inspection'],['id','Inspection date',13,0,'date'],['ii','Inspector',16,0,'text'],['ic','Inspection comment',26,0,'text'],['ptype','Project type (calculated)',14,0,'calc'],['atype','Asset type (calculated)',14,0,'calc']];
+  const lL={};LCOL.forEach((c,i)=>lL[c[0]]=xlC(i));const NLC=LCOL.length,lChk=xlC(NLC),lPrev=xlC(NLC+1),lNext=xlC(NLC+2),lHelp=xlC(NLC+3);
+  // NB: the sheet formulas above refer to columns by letter: A project, B asset, C delivery, D end, J return, R project type
+  const lrw=[LCOL.map(c=>({v:c[1]+(c[3]?' *':''),s:c[3]?2:c[4]==='calc'?8:1})).concat([{v:'CHECK (do not fill)',s:8}])];
+  for(let r=2;r<=2;r++){const g=k=>`${lL[k]}${r}`,P=[],T=g('ptype'),B=g('asset'),C=g('del'),D=g('end'),Pv=`${lPrev}${r}`,Nx=`${lNext}${r}`;
+    const prevRental=`COUNTIFS(${LR('B')},${B},${LR('D')},${Pv},${LR('R')},"Rental",${LR('J')},"<>Yes")`;
+    P.push(`IF(COUNTIF(${PR('A')},${g('proj')})<>1,"Project not found (or duplicated) in the sheet Projects; ","")`,`IF(COUNTIF(${AR('A')},${B})<>1,"Asset not found (or duplicated) in the sheet Assets; ","")`,
+      `IF(NOT(ISNUMBER(${C})),"Delivery date required; ","")`,`IF(NOT(ISNUMBER(${D})),"End date required; ","")`,`IF(AND(ISNUMBER(${C}),ISNUMBER(${D}),${D}<=${C}),"End date must be after the Delivery date; ","")`,
+      `IF(AND(${B}<>"",ISNUMBER(${C}),ISNUMBER(${D}),COUNTIFS(${LR('B')},${B},${LR('C')},"<="&${D},${LR('D')},">="&${C})>1),"Dates overlap another project of this asset; ","")`,
+      `IF(AND(OR(${T}="Maintenance",${T}="In production"),COUNTIF(${LR('A')},${g('proj')})>1),"A Maintenance / In production project contains only one asset; ","")`,
+      `IF(AND(${T}="In production",COUNTIFS(${LR('B')},${B},${LR('R')},"In production")>1),"An asset can be produced only once; ","")`,
+      `IF(AND(${T}="In production",COUNTIFS(${LR('B')},${B},${LR('R')},"<>In production",${LR('C')},"<="&${D})>0),"End of production must be before every delivery date of the asset; ","")`,
+      `IF(AND(${g('cd')}<>"",ISNUMBER(${C}),${g('cd')}>${C}),"Collection date must be on/before the Delivery date; ","")`,`IF(AND(${g('cd')}<>"",${g('dc')}<>"Yes"),"Collection date needs Delivery confirmed = Yes; ","")`,
+      `IF(AND(${g('rd')}<>"",ISNUMBER(${D}),${g('rd')}<${D}),"Return date must be on/after the End date; ","")`,`IF(AND(${g('rd')}<>"",${g('ec')}<>"Yes"),"Return date needs End confirmed = Yes; ","")`,
+      `IF(AND(${g('id')}<>"",ISNUMBER(${D}),${g('id')}>${D}),"Inspection date cannot be after the End date; ","")`,
+      `IF(AND(${T}<>"Rental",COUNTA(${g('tf')},${g('tt')},${g('wr')},${g('rt')},${g('is')},${g('id')},${g('ii')},${g('ic')})>0),"Transfer / workshop return / inspection only apply to Rental projects; ","")`,
+      `IF(AND(${T}="Rental",${g('ec')}="Yes",${g('tt')}<>"Yes",COUNTIF(lst_workshop,${g('rt')})=0),"Rental with End confirmed: choose the workshop in 'Returned to' (unless transfer to next); ","")`,
+      `IF(AND(${g('rt')}<>"",COUNTIF(lst_workshop,${g('rt')})=0),"Returned to: choose a workshop of the list; ","")`,
+      `IF(AND(${g('wr')}="Yes",${g('ec')}<>"Yes"),"Workshop return needs End confirmed = Yes; ","")`,`IF(AND(${g('wr')}="Yes",${g('tt')}="Yes"),"No workshop return when transferring to the next project; ","")`,
+      `IF(AND(${g('wr')}="Yes",ISNUMBER(${D}),${D}>TODAY()),"Workshop return cannot be confirmed before the End date; ","")`,
+      `IF(AND(${g('tf')}="Yes",OR(${Pv}=0,${prevRental}=0)),"Transfer from previous: the previous project of the asset must be a Rental without workshop return; ","")`,
+      `IF(AND(${g('tt')}="Yes",OR(${Nx}=0,COUNTIFS(${LR('B')},${B},${LR('C')},${Nx},${LR('R')},"Rental")=0)),"Transfer to next: the next project of the asset must be a Rental; ","")`,
+      `IF(AND(OR(${T}="Rental",${T}="Maintenance"),${Pv}>0,${prevRental}>0,NOT(AND(${T}="Rental",${g('tf')}="Yes"))),"Previous project of the asset is a Rental whose workshop return is not confirmed; ","")`);
+    ['dc','ec','tf','tt','wr'].forEach(k=>P.push(`IF(AND(${g(k)}<>"",${g(k)}<>"Yes",${g(k)}<>"No"),"${LCOL.find(c=>c[0]===k)[1].replace(/ \(.*/,'')}: Yes or No; ","")`));
+    P.push(`IF(AND(${g('is')}<>"",COUNTIF(lst_inspection,${g('is')})=0),"Inspection status must be chosen in the list; ","")`,dateOK(lL.del,r),dateOK(lL.end,r));
+    const row=new Array(NLC+4).fill(null),idx=lL;
+    row[18-1]={f:`IF(${g('proj')}="","",IFERROR(INDEX(${PR('B')},MATCH(${g('proj')},${PR('A')},0)),""))`};
+    row[18]={f:`IF(${B}="","",IFERROR(INDEX(${AR('B')},MATCH(${B},${AR('A')},0)),""))`};
+    row[NLC]={f:`IF(COUNTA(A${r}:Q${r})=0,"",IF(${lHelp}${r}="","OK",${lHelp}${r}))`,s:7};
+    row[NLC+1]={f:`IF(AND(${B}<>"",ISNUMBER(${C})),SUMPRODUCT(MAX((${LR('B')}=${B})*(${LR('D')}<${C})*${LR('D')})),0)`};
+    row[NLC+2]={f:`IF(AND(${B}<>"",ISNUMBER(${D})),IF(SUMPRODUCT(MAX((${LR('B')}=${B})*(${LR('C')}>${D})*(100000-${LR('C')})))=0,0,100000-SUMPRODUCT(MAX((${LR('B')}=${B})*(${LR('C')}>${D})*(100000-${LR('C')})))),0)`};
+    row[NLC+3]={f:`IF(COUNTA(A${r}:Q${r})=0,"",${P.join('&')})`};lrw[r-1]=row}
+  const ldv=[],lg=c=>`${c}2:${c}${NL+1}`;
+  LCOL.forEach((c,i)=>{const L=xlC(i),sq=lg(L),k=c[4];
+    if(k.startsWith('list:'))ldv.push({sq,f1:k.slice(5),pt:'Choose',p:'Choose a value in the list.',e:'Value not in the list. Choose it in the drop-down.'});
+    else if(k==='date')ldv.push({sq,t:'date',op:'between',f1:'36526',f2:'73050',pt:'Date',p:'Date dd/mm/yyyy.',e:'A valid date (dd/mm/yyyy) is expected.'});
+    else if(k==='yn')ldv.push({sq,f1:'"Yes,No"',pt:'Yes / No',p:'Yes or No (empty = No).',e:'Yes or No.'})});
+  ldv.push({sq:lg('A'),t:'custom',f1:`COUNTIF(${PR('A')},A2)=1`,pt:'Project name',p:'Must exist in the sheet Projects (same spelling).',e:'This project name does not exist (or exists twice) in the sheet Projects.'});
+  ldv.push({sq:lg('B'),t:'custom',f1:`COUNTIF(${AR('A')},B2)=1`,pt:'Asset',p:'Must exist in the sheet Assets (same spelling).',e:'This asset does not exist (or exists twice) in the sheet Assets.'});
+  ldv.push({sq:lg('D'),t:'custom',f1:`AND(ISNUMBER(D2),ISNUMBER(C2),D2>C2)`,pt:'End date',p:'After the Delivery date.',e:'The End date must be after the Delivery date.'});
+  const lcf=[{sq:lg(lChk),d:0,f:`AND(${lChk}2<>"",${lChk}2<>"OK")`},{sq:lg(lChk),d:3,f:`${lChk}2="OK"`}];
+  LCOL.filter(c=>c[3]).forEach(c=>{const L=lL[c[0]];lcf.push({sq:lg(L),d:1,f:`AND(COUNTA($A2:$Q2)>0,${L}2="")`})});
+  lcf.push({sq:lg('H')+' '+lg('I')+' '+lg('J')+' '+lg('K')+' '+lg('N')+' '+lg('O')+' '+lg('P')+' '+lg('Q'),d:2,f:'AND($R2<>"",$R2<>"Rental")'});
+  const lines={name:'Project lines',tab:'FF2F5D8A',cols:LCOL.map(c=>({w:c[2],s:c[4]==='date'?3:undefined})).concat([{w:60},{w:5,hidden:true},{w:5,hidden:true},{w:5,hidden:true}]),rows:lrw,sh:[{c:17,r2:NL+1},{c:18,r2:NL+1},{c:NLC,s:7,r2:NL+1},{c:NLC+1,r2:NL+1},{c:NLC+2,r2:NL+1},{c:NLC+3,r2:NL+1}],freeze:[2,1],rowH:{1:58},dv:ldv,cf:lcf};
+  // ---- Instructions
+  const I=[];const add=(t,s)=>I.push([{v:t,s:s??4}]);
+  add('Template for upload – RentPlanner',6);add('');
+  add('Ce fichier sert à préparer la reprise de vos projets et assets dans l’application. Remplissez les 3 onglets bleus, puis renvoyez le fichier : les données actuelles seront remplacées.',4);add('');
+  add('1) Assets – une ligne par asset (nom unique).',9);
+  add('2) Projects – une ligne par projet (nom unique) : type, lieu, zone commerciale, chef de projet, et jusqu’à 3 blocs « Other assets owner ».',4);
+  add('3) Project lines – une ligne par asset et par projet : dates de livraison / fin et informations de suivi. Le nom du projet et le nom de l’asset doivent être écrits exactement comme dans les onglets Projects et Assets (choisissez-les dans la cellule : un contrôle refuse toute valeur inconnue).',4);
+  add('Les onglets gris (Lists, Rules) sont informatifs : ils reprennent les listes de l’application (Admin > Lists) et les champs obligatoires par type d’asset (Admin > Asset fields) au moment du téléchargement. Ne les modifiez pas.',4);add('');
+  add('Comment remplir',9);
+  add('• En-tête ORANGE avec * = champ obligatoire ; en-tête BLEU = optionnel ; en-tête GRIS = calculé, ne pas remplir.',4);
+  add('• Les cellules à liste déroulante n’acceptent que les valeurs de la liste. Les dates se saisissent au format jj/mm/aaaa. Yes/No : laisser vide = No (Enabled vide = Yes ; Status vide = Active).',4);
+  add('• Colonne CHECK (à droite) : « OK » en vert si la ligne respecte toutes les règles, sinon un message rouge explique le problème. Toutes les lignes doivent être en OK avant de renvoyer le fichier.',4);
+  add('• Cellule jaune = champ obligatoire encore vide (selon le type d’asset). Cellule grise = champ non utilisé pour ce type : le laisser vide.',4);
+  add('• Hose : Length obligatoire ; Hose et Fitting : le Model doit être choisi dans la liste de modèles. Les autres types : Model en texte libre.',4);
+  add('• Manufacture date : doit être antérieure à toutes les dates de livraison Rental/Maintenance de l’asset. Si l’asset a un projet « In production », laissez-la vide : elle sera égale à la date de fin de ce projet.',4);
+  add('• Scrapped / Sold / Lost : la date correspondante est obligatoire (et le Location pour Scrapped / Sold), à partir de la fin du dernier projet de l’asset.',4);
+  add('• Dates d’un même asset : aucun chevauchement entre deux projets. Date de fin strictement après la date de livraison. Maintenance et In production : un seul asset par projet, lieu = un workshop de la liste.',4);
+  add('• Un Rental dont la fin est confirmée (End confirmed = Yes) doit indiquer le workshop de retour (Returned to), sauf transfert vers le projet suivant. Après un Rental, un nouveau projet de l’asset nécessite un retour atelier confirmé (Return to the workshop confirmed = Yes) sauf Transfer from previous client.',4);
+  add('• Transfer / retour atelier / inspection : uniquement pour les projets Rental. Cost et Quality audit : uniquement pour les projets Maintenance.',4);
+  add('• Chaque projet doit avoir au moins une ligne dans Project lines ; chaque asset utilisé dans Project lines doit exister dans Assets.',4);
+  add('• Les documents PDF et les statuts calculés par l’application (Rented, Available…, dates de début/fin du projet) ne sont pas à fournir : ils sont déduits des lignes.',4);
+  add('• Les cases peuvent être copiées-collées depuis votre Excel actuel (collage des valeurs seules : Collage spécial > Valeurs, afin de conserver les contrôles). Les contrôles de la colonne CHECK signaleront alors les erreurs.',4);
+  add('');add(`Fichier généré le ${new Date().toLocaleString('fr-FR')} par ${S.me.name||''}. Capacité : ${NA} assets, ${NP} projets, ${NL} lignes.`,5);
+  const instr={name:'Instructions',tab:'FFC0561A',grid:false,cols:[{w:150}],rows:I};
+  const wb=xlBook([instr,assets,projects,lines,lists,rules],names);
+  return wb;
+}
+function dlBlob(u8,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+function exportUploadTemplate(){const el=$('#exp');try{el.textContent='Building the template…';const u=uploadTemplate();dlBlob(u,`RentPlanner_Template_for_upload_${xlStamp()}.xlsx`);el.textContent='Template downloaded.'}catch(e){el.textContent='';toast('Template error: '+(e.message||e))}}
+
 /* ---------- Dashboard ---------- */
 const DSC={Available:'#e3eadf',Maintenance:'#d4652f',Rented:'#3b83bd','In production':'#4d5559'},PTC={Rental:'#3b83bd',Maintenance:'#d4652f','In production':'#4d5559'},DEAD=['Sold','Scrapped','In production','Lost'];
 const dsE=()=>PRIV(S.me)?(S.prefs.dse||[]):[S.me.entity_id||'-'],dsT=()=>S.prefs.dst||[],dif=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/DAY);
@@ -1332,7 +1591,7 @@ function openAdmin(tab){
     <div style="overflow:auto;max-height:50vh"><table><tr>${[['name','Name'],['email','Email'],['entity','Entity'],['profile','Profile'],['active','Active'],['login','Login']].map(([k,l])=>`<th class="c" data-us="${k}">${l}${(S.usort||['name',1])[0]===k?((S.usort||['name',1])[1]>0?' ▲':' ▼'):''}</th>`).join('')}</tr>${rows}</table></div>
     <p class="inf">Changes are saved immediately. Untick “Active” to remove someone’s access; users cannot be deleted.</p>`;
   }else if(tab==='export'){
-    body=`<p>Download <b>all the data of the application</b> in one Excel file: one sheet per table (assets, projects, project asset lines, users, entities, drop-down lists, permissions and the full event log).</p><p><button class="p" id="expgo">Export all data to Excel</button></p><p class="inf" id="exp"></p><p class="inf">The Excel library is loaded only when you click the button (internet access required). Personal preferences (column widths…) are not exported.</p>`;
+    body=`<p>Download <b>all the data of the application</b> in one Excel file: one sheet per table (assets, projects, project asset lines, users, entities, drop-down lists, permissions and the full event log).</p><p><button class="p" id="expgo">Export all data to Excel</button></p><p><b>Template for upload</b>: an Excel file (sheets Projects, Assets, Project lines) to fill in to load projects and assets in one go. It contains drop-down lists, mandatory fields per asset type and automatic checks (CHECK column).</p><p><button class="p" id="expupl">Download “Template for upload”</button></p><p class="inf" id="exp"></p><p class="inf">The Excel library is loaded only when you click the button (internet access required). Personal preferences (column widths…) are not exported.</p>`;
   }else if(tab==='translation'){
     body=trHtml();
   }else if(tab==='afields'){
@@ -1560,6 +1819,7 @@ $('#modal').onclick=async e=>{const t=e.target,{p,lines}=S.ed||{};
   else if(t.id==='wrsv')saveWr();
   else if(t.dataset.us!==undefined){const c=S.usort||['name',1];S.usort=[t.dataset.us,c[0]===t.dataset.us?-c[1]:1];openAdmin('users')}
   else if(t.id==='expgo')exportAll();
+  else if(t.id==='expupl')exportUploadTemplate();
   else if(t.id==='asgo'){const id=$('#asu').value;closeModal();simSet(id)}
   else if(t.closest('[data-tg]'))tgl(t.closest('[data-tg]'));
   else if(t.dataset.tab)openAdmin(t.dataset.tab);
