@@ -2,7 +2,9 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Asset planning</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#4d5559"><link rel="icon" type="image/png" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="RentPlanner">
 <script src="config.js"></script>
+<script>if("serviceWorker" in navigator&&location.protocol==="https:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{--grey:#4d5559;--orange:#d4652f;--blue:#3b83bd;--bg:#f4f4f4;--ink:#282828;--line:#dcdcd6}
