@@ -365,13 +365,13 @@ async function all(t,o){let r=[],i=0;for(;;){let q=sb.from(t).select('*');if(o)q
 async function load(force){
   if(!force&&S.adm&&S.adm.q.size)return;
   try{
-    let[a,p,l,u,k,e,rp,ob,qa,af,trr,ti,lsr,cfr]=await Promise.all([all('assets_overview','id'),all('projects_overview','id'),all('project_assets','id'),all('profiles','id'),all('lookup_values'),all('entities','id'),all('role_permissions'),all('project_owner_blocks','id'),all('project_audits','project_id').catch(()=>[]),all('asset_type_fields','asset_type').catch(()=>[]),all('ui_translations','key').catch(()=>[]),all('asset_type_interfaces','asset_type').catch(()=>[]),all('list_settings','list_name').catch(()=>[]),all('app_settings','key').catch(()=>[])]);
+    let[a,p,l,u,k,e,rp,ob,qa,af,trr,ti,lsr,cfr,dcr]=await Promise.all([all('assets_overview','id'),all('projects_overview','id'),all('project_assets','id'),all('profiles','id'),all('lookup_values'),all('entities','id'),all('role_permissions'),all('project_owner_blocks','id'),all('project_audits','project_id').catch(()=>[]),all('asset_type_fields','asset_type').catch(()=>[]),all('ui_translations','key').catch(()=>[]),all('asset_type_interfaces','asset_type').catch(()=>[]),all('list_settings','list_name').catch(()=>[]),all('app_settings','key').catch(()=>[]),all('project_dcr','project_id').catch(()=>[])]);
     {const m=u.find(x=>x.id===S.me.id);if(m)S.me=m;const r=u.find(x=>x.id===S.real.id);if(r)S.real=r}
     if(S.real?.must_change_password)forcePw();
     if(!PRIV(S.me)){const ok=new Set(p.filter(seesP).map(x=>x.id));p=p.filter(x=>ok.has(x.id));l=l.filter(x=>ok.has(x.project_id));ob=ob.filter(x=>ok.has(x.project_id));qa=(qa||[]).filter(x=>ok.has(x.project_id))}
     trLoad(trr||[]);{const have=new Set((trr||[]).map(r=>r.key)),miss=Object.keys(I18N_SEED).filter(k=>!have.has(k));if(miss.length&&(trr||[]).length+miss.length>0)trSeed(miss)}
     S.AF=Object.fromEntries((af||[]).map(x=>[x.asset_type,{hidden:x.hidden_fields||[],required:x.required_fields||[]}]));S.TI=Object.fromEntries((ti||[]).map(x=>[x.asset_type,x.interfaces||[]]));
-    S.QA=Object.fromEntries((qa||[]).map(x=>[x.project_id,x]));S.LSA=Object.fromEntries((lsr||[]).map(x=>[x.list_name,!!x.alphabetical]));S.CFG=Object.fromEntries((cfr||[]).map(x=>[x.key,x.value]));if(window.bisonArm)bisonArm();
+    S.QA=Object.fromEntries((qa||[]).map(x=>[x.project_id,x]));S.DCR=Object.fromEntries((dcr||[]).map(x=>[x.project_id,x]));S.LSA=Object.fromEntries((lsr||[]).map(x=>[x.list_name,!!x.alphabetical]));S.CFG=Object.fromEntries((cfr||[]).map(x=>[x.key,x.value]));if(window.bisonArm)bisonArm();
     S.AM=Object.fromEntries(a.map(x=>[x.id,x]));S.A=a.filter(x=>x.active);S.P=p;S.L=l;S.U=u;S.KA=k.slice().sort((x,y)=>x.sort_order-y.sort_order);S.K=S.KA.filter(x=>x.active);S.E=e;{const sg=trLvBuild();if(sg!==TR.lsig){TR.lsig=sg;trAll()}}
     S.PJ=Object.fromEntries(p.map(x=>[x.id,x]));S.EN=Object.fromEntries(e.map(x=>[x.id,x.name]));
     S.OBL=ob;S.OB={};ob.slice().sort((x,y)=>x.pos-y.pos).forEach(b=>(S.OB[b.project_id]??=[]).push(b));S.PN=Object.fromEntries(p.map(x=>[x.project_name,x.id]));
@@ -999,6 +999,9 @@ function renderDashBody(){
     hw.push({a,loc,l:last||{},p:last?S.PJ[last.project_id]:null})});
   hw.sort((x,y)=>(x.l.end_date||'')<(y.l.end_date||'')?-1:1);
   const hwb=hw.length?`<div class="dalert"><h4>${HS} Assets not returned to a workshop <span class="dan">${hw.length}</span></h4><div class="tw"><table><thead><tr><th>Asset type</th><th>Asset</th><th>Model</th><th>Last project</th><th>Location / client (or workshop)</th><th>Delivery date</th><th>End date</th></tr></thead><tbody>${hw.map(r=>`<tr><td>${esc(r.a.asset_type||'')}</td><td>${esc(r.a.name||'')}</td><td>${esc(r.a.model||'')}</td><td>${r.p?`<button class="lk" data-pj="${r.p.id}">${esc(r.p.project_name||'')}</button>`:''}</td><td>${esc(r.loc)}</td><td>${r.l.delivery_date?fr(r.l.delivery_date):''}</td><td>${r.l.end_date?fr(r.l.end_date):''}</td></tr>`).join('')}</tbody></table></div></div>`:'';
+  const d0=addD(TODAY,-15),dcl=S.P.filter(p=>p.project_type==='Rental'&&p.active!==false&&p.status==='In progress'&&pok(p)&&!(S.DCR||{})[p.id]&&p.start_date&&p.start_date<=TODAY&&p.start_date>=d0).sort((x,y)=>x.start_date.localeCompare(y.start_date)||x.project_name.localeCompare(y.project_name));
+  const dcb=dcl.length?`<div class="dalert"><h4>${HS} Delivery condition report to be sent <span class="dan">${dcl.length}</span></h4><div class="tw"><table><thead><tr><th>Project name</th><th>Location / client (or workshop)</th><th>Start date</th></tr></thead><tbody>${dcl.map(p=>`<tr><td><button class="lk" data-pj="${p.id}">${esc(p.project_name||'')}</button></td><td>${esc(p.location_name||'')}</td><td>${fr(p.start_date)}</td></tr>`).join('')}</tbody></table></div></div>`:'';
+  const dal=(hwb||dcb)?`<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1 1 560px;min-width:0">${hwb}</div><div style="flex:1 1 360px;min-width:0">${dcb}</div></div>`:'';
   // Hose stockout risk: models of which the selected entity(ies) own at least 1 alive hose; Available count < 2 (now or later)
   let hso='';
   if(!T.size||T.has('Hose')){
@@ -1016,7 +1019,7 @@ function renderDashBody(){
         rows.push({m,now,total:pool.length,cz:cz.map(l=>S.PJ[l.project_id]).filter(Boolean),...hit})}});
     rows.sort((x,y)=>x.d.localeCompare(y.d)||x.m.localeCompare(y.m));
     hso=`<h3 class="mf">Hose stockout risk</h3>`+card('Hose models whose Available quantity falls below 2',rows.length?`<div class="tw"><table><thead><tr><th>Hose model</th><th>Quantity owned</th><th>Available now</th><th>Estimated stockout date</th><th>Concerned project</th><th>Estimated Available quantity at that date</th></tr></thead><tbody>${rows.map(r=>`<tr${r.d===TODAY?' style="background:#fdecea"':''}><td>${esc(r.m)}</td><td>${r.total}</td><td>${r.now}</td><td><b>${fr(r.d)}</b>${r.d===TODAY?' (ongoing)':''}</td><td>${r.cz.slice(0,3).map(p=>`<button class="lk" data-pj="${p.id}">${esc(p.project_name||'')}</button> ${esc(p.location_name||'')}`).join('<br>')}${r.cz.length>3?'<br>+'+(r.cz.length-3):''}</td><td>${r.q}</td></tr>`).join('')}</tbody></table></div>`:'<p class="inf">No stockout risk detected on the hose models of the selected entity.</p>','w')}
-  $('#dbx').innerHTML=`${hwb}<div class="dr0">${card('Rental assets ending in less than 15 days – Pre-return inspection to be planned',ltab(ins))}${card('Maintenance projects – Quality audit',`<h5>Quality audit asked</h5>${ltab(qa1)}<h5>Quality audit non-compliant</h5>${ltab(qa2)}`)}</div><div class="dr1">${card('Assets by status',pieSvg(st))}${card('Projects in progress by type',pieSvg(pt))}${card('Assets currently rented: short / long term',pieSvg(rt))}</div>
+  $('#dbx').innerHTML=`${dal}<div class="dr0">${card('Rental assets ending in less than 15 days – Pre-return inspection to be planned',ltab(ins))}${card('Maintenance projects – Quality audit',`<h5>Quality audit asked</h5>${ltab(qa1)}<h5>Quality audit non-compliant</h5>${ltab(qa2)}`)}</div><div class="dr1">${card('Assets by status',pieSvg(st))}${card('Projects in progress by type',pieSvg(pt))}${card('Assets currently rented: short / long term',pieSvg(rt))}</div>
   ${card('Maintenance projects in progress',hist,'w')}
   <h3 class="mf">Main figures</h3><div class="dr3">${bubs}</div>${card('Assets still alive by type',`<div class="dr4">${tb}</div>`,'w')}${hso}`;
 }
@@ -1176,15 +1179,15 @@ function chartKpi(){
 /* ---------- warning at sign-in: unconfirmed End dates within 7 days ---------- */
 function endRows(){
   if(!S.me?.entity_id||S.sim)return[];
-  const td=new Date().toLocaleDateString('sv-SE'),lim=addD(td,7);
+  const td=new Date().toLocaleDateString('sv-SE'),lim=addD(td,10);
   return S.L.filter(l=>{const p=S.PJ[l.project_id],a=S.AM[l.asset_id];return p&&p.active&&p.status==='In progress'&&a&&a.entity_id===S.me.entity_id&&!l.end_confirmed&&l.end_date>=td&&l.end_date<=lim}).sort((x,y)=>x.end_date<y.end_date?-1:1)}
 function updEndBtn(){const b=$('#etb');if(!b)return;const n=endRows().length;b.hidden=!n;b.innerHTML='End date to be confirmed<br><span style="font-size:.85em;font-weight:700">'+n+' asset'+(n>1?'s':'')+'</span>'}
 function showEndWarn(){
   const rows=endRows();
   if(!rows.length)return;
   S.ed=null;S.as=null;
-  $('#modal').innerHTML=`<div class="box" style="width:min(720px,100%)"><h2>⚠ Attention</h2><p>These assets have an End date that is <b>not confirmed</b> and falls within the next 7 days. Once the End dates have passed, the assets will automatically be considered returned and the project may move to “Closed”.</p>
-  <table><tr><th>Asset</th><th>Project</th><th>Location / client (or workshop)</th><th>End date</th></tr>${rows.map(l=>`<tr><td>${esc(S.AM[l.asset_id].name)}</td><td><button class="lk" data-pj="${l.project_id}">${esc(S.PJ[l.project_id].project_name)}</button></td><td>${esc(S.PJ[l.project_id].location_name||'')}</td><td>${fr(l.end_date)}</td></tr>`).join('')}</table>
+  $('#modal').innerHTML=`<div class="box" style="width:min(720px,100%)"><h2>⚠ Attention</h2><p>These assets have an End date that is <b>not confirmed</b> and falls within the next 10 days. Once the End dates have passed, the assets will automatically be considered returned and the project may move to “Closed”.</p>
+  <table><tr><th>Asset</th><th>Model</th><th>Project</th><th>Location / client (or workshop)</th><th>End date</th></tr>${rows.map(l=>`<tr><td>${esc(S.AM[l.asset_id].name)}</td><td>${esc(S.AM[l.asset_id].model||'')}</td><td><button class="lk" data-pj="${l.project_id}">${esc(S.PJ[l.project_id].project_name)}</button></td><td>${esc(S.PJ[l.project_id].location_name||'')}</td><td>${fr(l.end_date)}</td></tr>`).join('')}</table>
   <div class="bt"><button class="p" id="cx">OK</button></div></div>`;
   $('#modal').hidden=false;
 }
@@ -1689,6 +1692,25 @@ function qaSet(p,st,d,cm){   // applied only when the project is saved successfu
   S.ed.qaNew={status:st,audit_date:d,comment:cm||''};closeModal();
 }
 
+/* ---------- delivery condition report (Rental projects) ---------- */
+const dcrOf=p=>{if(S.ed&&S.ed.dcrNew!==undefined&&S.ed.p&&p&&S.ed.p.id===p.id)return S.ed.dcrNew;return p?S.DCR?.[p.id]||null:null};
+const DCR_ICO=c=>'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="'+c+'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4" width="15" height="17.5" rx="2"/><path d="M9 4V2.8h6V4"/><circle cx="9.2" cy="10" r="1.3"/><path d="M6.5 17.5l3.6-3.8 2.4 2.3 2-2 3 3.5"/></svg>';
+function dcrCell(p,v){
+  if(v.project_type!=='Rental')return '';
+  const d=dcrOf(p),sent=!!d,can_=!!p&&p.project_type==='Rental'&&(can('project_edit')||can('project_lines'))&&ptOK(p.project_type)&&canOwn(p),c=sent?'#2e9e4f':'#7b7f83';
+  const tx=sent?'Delivery condition report sent on '+fr(d.sent_date):'Delivery condition report to be sent';
+  return `<button type="button" data-dcr="1"${can_?'':' disabled'} title="${p?esc(tx):'Save the project first'}" style="display:flex;align-items:center;gap:8px;margin:0;padding:6px 12px;border:2px solid ${c};border-radius:8px;background:${sent?'#e8f5ec':'#eceff1'};color:${c};font-weight:700;font-size:13px;cursor:${can_?'pointer':'default'}">${DCR_ICO(c)}<span>${esc(tx)}</span></button>`;
+}
+function dcrMenu(){
+  const p=S.ed.p;if(!p)return;const cur=dcrOf(p);pushModal();
+  $('#modal').innerHTML=`<div class="box" style="max-width:460px"><h2>Delivery condition report</h2><p class="inf">Current status: <b>${cur?'Delivery condition report sent on '+fr(cur.sent_date):'Delivery condition report to be sent'}</b></p>
+  <label>Date the delivery condition report was sent <b class="rq">*</b><input type="date" id="dcd" value="${cur?cur.sent_date:TODAY}" max="${TODAY}"></label>
+  <div class="bt"><button class="p" id="dcok">${cur?'Change the date':'Delivery condition report sent'}</button>${cur?'<button id="dcrv">Back to “to be sent”</button>':''}<button id="dcno">Cancel</button></div></div>`;
+  $('#dcno').onclick=()=>closeModal();
+  $('#dcok').onclick=()=>{const d=$('#dcd').value;if(!d)return toast('Enter the date the report was sent.');if(d>TODAY)return toast('The sending date cannot be in the future.');S.ed.dcrNew={sent_date:d};closeModal()};
+  if(cur)$('#dcrv').onclick=()=>{S.ed.dcrNew=null;closeModal()};
+}
+
 /* ---------- pre-return inspection (Rental lines) ---------- */
 const preOn=t=>{const k=S.KA.find(x=>x.list_name==='asset_type'&&x.value===t);return k?k.pre_return!==false:true};
 const INS_T={to_plan:'Inspection to be planned',planned:'Inspection planned',done:'Inspection done'},INS_C={to_plan:'#9a9a9a',planned:'#1e6fd9',done:'#2e9e4f'};
@@ -1751,8 +1773,8 @@ function draw(){
     const rs=xs.filter(x=>kd(x.l)===0).map(x=>rowOf(x.l,x.i)).join('')+grpRows(1,'Fitting')+grpRows(2,'Hose');return rs?`<p class="inf" style="margin:12px 0 2px"><b>${n}</b></p><table class="ptab">${CG}${head(g)}${rs}</table>`:''}).join('')||'<p class="inf">No asset.</p>';
   $('#modal').innerHTML=`<div class="box" style="width:min(1292px,100%)"><h2>${p?'Project '+esc(p.project_name):'New project'}</h2>
   <p class="inf" style="margin:0 0 6px">Main project name (automatic): <b id="pname">${esc(composeName())}</b></p>
-  <div class="g" style="grid-template-columns:minmax(150px,230px) 31ch auto auto auto;align-items:end"><label>Type${sel('project_type',opts('project_type',v.project_type).filter(o=>isAdm(S.me)||ptOK(o[0])||o[0]===v.project_type))}</label>
-  <label>Location / client (or workshop)${wk?`<select data-v="location_name"${dh}>${op([['','']].concat(opts('workshop',v.location_name)),v.location_name)}</select>`:`<input data-v="location_name" value="${esc(v.location_name)}"${dh}>`}</label>${v.project_type==='Maintenance'?`<label>Cost (€)<input data-v="cost" type="number" step="1" min="0" style="width:120px" value="${esc(v.cost)}"${dh}></label>`:''}${qaCell(p,v)}<div class="apw"><button id="apb"${dh}>Approve entity</button><span class="apn" title="Entities allowed to see / open / modify this project">${v.approved.map(x=>esc(S.EN[x]||'')).filter(Boolean).sort().join(' / ')}</span></div></div>
+  <div class="g" style="grid-template-columns:minmax(150px,230px) 31ch auto auto auto 1fr;align-items:end"><label>Type${sel('project_type',opts('project_type',v.project_type).filter(o=>isAdm(S.me)||ptOK(o[0])||o[0]===v.project_type))}</label>
+  <label>Location / client (or workshop)${wk?`<select data-v="location_name"${dh}>${op([['','']].concat(opts('workshop',v.location_name)),v.location_name)}</select>`:`<input data-v="location_name" value="${esc(v.location_name)}"${dh}>`}</label>${v.project_type==='Maintenance'?`<label>Cost (€)<input data-v="cost" type="number" step="1" min="0" style="width:120px" value="${esc(v.cost)}"${dh}></label>`:''}<div class="apw"><button id="apb"${dh}>Approve entity</button><span class="apn" title="Entities allowed to see / open / modify this project">${v.approved.map(x=>esc(S.EN[x]||'')).filter(Boolean).sort().join(' / ')}</span></div><div style="grid-column:6;justify-self:end">${qaCell(p,v)}${dcrCell(p,v)}</div></div>
   <fieldset class="ob"><legend>Project owner${(()=>{const e=S.EN[S.U.find(u=>u.id===v.project_manager_id)?.entity_id];return e?' – '+esc(e):''})()}</legend><div class="g">
     <label>Project name<input data-v="project_name" value="${esc(v.project_name)}"${dh}></label>
     <label>Commercial area${sel('commercial_area',opts('commercial_area',v.commercial_area))}</label>
@@ -1820,6 +1842,7 @@ $('#modal').onclick=async e=>{const t=e.target,{p,lines}=S.ed||{};
   else if(t.id==='adel')delAsset();
   else if(t.id==='aclone')cloneAsset();
   else if(t.closest('[data-ins]'))insMenu(+t.closest('[data-ins]').dataset.ins);
+  else if(t.closest('[data-dcr]')){if(!t.closest('[data-dcr]').disabled)dcrMenu();else if(!S.ed?.p)toast('Save the project first.')}
   else if(t.closest('[data-qa]')){if(!t.closest('[data-qa]').disabled)qaMenu();else if(!S.ed?.p)toast('Save the project first.')}
   else if(t.dataset.dso)dsOpen(t.dataset.dso);
   else if(t.dataset.dsd)dsDel(t.dataset.dsd);
@@ -1994,6 +2017,7 @@ async function save(){
   const qaWas=qaOn();
   toast('Saved.');
   if(qn&&pid&&v.project_type==='Maintenance'&&qaWas){const r=await sb.rpc('set_quality_audit',{p_project:pid,p_status:qn.status,p_date:qn.audit_date,p_comment:qn.comment||null});if(r.error)toast('Project saved, but the quality audit was not updated: '+msg(r.error));else(S.QA??={})[pid]={project_id:pid,status:qn.status,audit_date:qn.audit_date,comment:qn.comment}}
+  if(S.ed.dcrNew!==undefined&&(pid||svId)&&v.project_type==='Rental'){const r=await sb.rpc('set_delivery_report',{p_project:pid||svId,p_date:S.ed.dcrNew?S.ed.dcrNew.sent_date:null});if(r.error)toast('Project saved, but the delivery condition report was not updated: '+msg(r.error))}
   await load();closeModal();{const id=pid||svId;if(id&&S.PJ[id])openProject(id)}
 }
 
