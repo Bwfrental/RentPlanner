@@ -2045,6 +2045,7 @@ const BS_FRONT=`<svg id="bfr" viewBox="0 20 300 330" xmlns="http://www.w3.org/20
   const css=document.createElement('style');css.textContent=`
 #bison{position:fixed;inset:0;z-index:100000;display:none;pointer-events:none;opacity:0;transition:opacity .6s ease;background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);overflow:hidden}
 #bison.vis{display:block}#bison.on{opacity:1}
+#bison #bzt{position:absolute;left:0;right:0;text-align:center;font:800 40px/1.1 system-ui,Segoe UI,Arial,sans-serif;color:#FF7A14;-webkit-text-stroke:2px #fff;paint-order:stroke fill;text-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:none;letter-spacing:.5px}
 #bison #bzb{position:absolute;left:0;top:0;display:none;pointer-events:none;filter:drop-shadow(0 10px 12px rgba(0,0,0,.25))}
 #bison .bz{position:absolute;left:0;top:0;will-change:transform;display:none}
 #bison .bz svg{display:block;width:100%;height:100%}
@@ -2103,10 +2104,11 @@ const BS_FRONT=`<svg id="bfr" viewBox="0 20 300 330" xmlns="http://www.w3.org/20
   const showS=()=>{zf.style.display='none';zf.classList.remove('kn','joy','pop');zs.style.display='block'};
   const LEG=2300,PAUSE=450;
   const zb=document.createElement('img');zb.id='bzb';zb.alt='';zb.src='data:image/png;base64,'+BOILER_B64;el.appendChild(zb);
+  const zt=document.createElement('div');zt.id='bzt';zt.textContent="It's time to work!";el.appendChild(zt);
   const G=()=>({gy:D.cy+D.h*.2});
   function layout(){D=dim();const Hs=Math.min(.27*D.h,.22*D.w);D.H=Hs;const Bh=.2*D.h;D.Bh=Bh;D.Bw=Bh*560/569;D.gy=D.cy+.2*D.h;
     zb.style.height=Bh+'px';zb.style.width=D.Bw+'px';zb.style.transform=`translate(${D.cx-D.Bw/2}px,${D.gy-Bh}px)`;
-    D.bw=D.H*480/270;D.dx=D.Bw/2+D.bw*.5;D.ap=Bh+D.H*.3}
+    D.bw=D.H*480/270;D.dx=D.Bw/2+D.bw*.5;D.ap=Bh+D.H*.3;const fs=Math.max(26,Math.min(64,D.w*.045));zt.style.fontSize=fs+'px';zt.style.top=Math.max(12,D.gy-D.ap-D.H-fs*1.3)+'px'}
   function placeJ(u,dir){const x=D.cx+dir*(-D.dx+2*D.dx*u),y=D.gy-D.H/2-4*D.ap*u*(1-u);
     zs.style.height=D.H+'px';zs.style.width=D.bw+'px';zs.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%) rotate(${-8*Math.sin(u*Math.PI)}deg) scale(${dir},1)`;zs.style.setProperty('--t','')}
   let leg=0,tl=0;
