@@ -359,13 +359,17 @@ async function start(u){
   if(!data){$('#lerr').textContent='Account not activated: please contact an administrator.';await sb.auth.signOut();return}
   S.me=S.real=data;S.sim=false;S.first=true;try{await sb.rpc('set_sim',{p_as:null})}catch(_){}
   {const{data:pr}=await sb.from('user_prefs').select('prefs').maybeSingle();S.prefs={w:{},...(pr?.prefs||{})};S.prefs.w=S.prefs.w||{};
+    // first connection of a new user (no saved preferences yet): default Gantt layout
+    if(!pr||!Object.keys(pr.prefs||{}).length){Object.assign(S.prefs,{grp:['asset_type'],sort:['net_power',1],
+      cols:['asset_type','name','model','design_pressure','net_power','steam_flowrate','_loc','status','|','length','ongoing_project','_av','|3','loss_date','manufacture_date','sale_date','destruction_date','_ent','fuel_energy','operating_mode','ce','outdoor','purchase_price','supplier','purchase_order','comments'],
+      torder:['Steam boiler','Steam generator','Steam superheater','Hot water boiler','Thermal fluid boiler','Air heater','Water treatment plant','Feedwater tank','Water expansion tank','LFO tank','LFO booster pump','Gas tank','Gas pressure reducer','Feedwater pump','Hot water pump','Blowdown vessel','Silencer','Steam pressure reducer','Thermal fluid pump','Rigid pipe','Hose','Fitting','Transport crate','Pallet for hoses','Other']});S.newPrefs=true}
     S.lang=DS_LANG.includes(S.prefs.lang)?S.prefs.lang:'English';TR.lang=S.lang;renderLang();
     S.f=S.prefs.f||{};S.det=!!S.prefs.det;S.sort=S.prefs.sort||['name',1];S.kp=S.prefs.kp&&S.prefs.kp.per?S.prefs.kp:undefined;
     S.ev={rows:[],from:'',to:'',user:'',kind:'',q:'',sys:true,more:false,ent:'',...(S.prefs.ev||{})};
     ['q','p','l','m','mo','g'].forEach(x=>$('#f'+x).value=S.f[x]||'');document.querySelectorAll('details.ms').forEach(d=>delete d.dataset.key)}
   $('#login').hidden=true;$('#app').hidden=false;
   $('#who').textContent=data.name+' · '+data.profile;
-  await load();updEndBtn();
+  await load();updEndBtn();if(S.newPrefs){S.newPrefs=false;pushPrefs()}
   sb.channel('rt').on('postgres_changes',{event:'*',schema:'public'},()=>{clearTimeout(S.t);S.t=setTimeout(load,700)}).subscribe();
 }
 
