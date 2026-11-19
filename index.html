@@ -174,6 +174,7 @@ header .hsim{margin-top:4px}
 }
 th.uas{cursor:pointer;user-select:none}th.uas:hover{text-decoration:underline}.uam{margin-left:10px;display:inline-flex;gap:3px;vertical-align:middle}.uam button{color:#333;background:#fff;border:1px solid #bbb;border-radius:4px;cursor:pointer;padding:0 6px;font-size:11px;line-height:18px;height:20px}
 .pvb{position:relative}.pvr{display:grid;grid-template-columns:1.3fr .9fr 1.1fr .9fr;gap:8px;align-items:end;margin-top:8px}.pvr label{min-width:0}.pvr input{width:100%;box-sizing:border-box}.pvn{display:block;padding:6px 2px;font-weight:700;min-height:20px}.pvt{position:absolute;top:-13px;right:10px;background:#fff;padding:0 4px;display:flex;align-items:center;cursor:pointer}.pvt input{display:none}.pvt span{border:1px solid #b9b9b9;border-radius:12px;padding:2px 12px;font-size:12px;font-weight:700;background:#eee;color:#666}.pvt.on span{background:#2e8b57;border-color:#2e8b57;color:#fff}
+.pvb.off .pvr{opacity:.45;pointer-events:none;filter:grayscale(1)}.pvb.off>legend{color:#888}
 </style></head><body>
 
 <div id="login">
@@ -458,10 +459,10 @@ function pvMarks(a){if(!a||!a.pv_enabled||!isBw(a.entity_id))return[];const out=
   return out}
 function pvBlock(v,dz){const ro=dz('last_inspection_date')?' data-ro="1"':'';
   const row=([k,w,dk,fk,ak,nm,nl])=>`<div class="pvr" data-pvk="${k}" data-dk="${dk}"><label>${k==='insp'?'Last periodic inspection':'Last requalification'}<input data-a="${dk}" type="date" value="${esc(v[dk])}"${dz(dk)}${ro}></label><label>Frequency (months)<input data-a="${fk}" type="number" min="1" step="1" value="${esc(v[fk])}"${dz(dk)}${ro}></label><label>${nl}<span class="pvn" data-pvn="${k}">–</span></label><label>Alert delay (months)<input data-a="${ak}" type="number" min="0" step="1" value="${esc(v[ak])}"${dz(dk)}${ro}></label></div>`;
-  return `<fieldset class="ab pvb"><legend>Periodic visits/inspections</legend><label class="pvt${v.pv_enabled?' on':''}"><input type="checkbox" data-a="pv_enabled"${v.pv_enabled?' checked':''}${dz('last_inspection_date')}><span>${v.pv_enabled?'Enabled':'Disabled'}</span></label>${PV.map(row).join('')}</fieldset>`}
+  return `<fieldset class="ab pvb${v.pv_enabled?'':' off'}"><legend>Periodic visits/inspections</legend><label class="pvt${v.pv_enabled?' on':''}"><input type="checkbox" data-a="pv_enabled"${v.pv_enabled?' checked':''}${dz('last_inspection_date')}><span>${v.pv_enabled?'Enabled':'Disabled'}</span></label>${PV.map(row).join('')}</fieldset>`}
 function pvRefresh(vis){const v=S.as.v,fs=document.querySelector('#modal .pvb');if(!fs)return;const en=!!v.pv_enabled;
   fs.querySelectorAll('.pvr').forEach(r=>{const p=PV.find(x=>x[0]===r.dataset.pvk),d=v[p[2]],f=pvInt(v[p[3]],1);r.querySelector('.pvn').textContent=d&&f?fr(addM(d,f)):'–';r.style.display=vis(p[2])?'':'none';r.querySelectorAll('input').forEach(i=>{i.disabled=!en||!!i.dataset.ro})});
-  const t=fs.querySelector('.pvt');if(t){t.classList.toggle('on',en);const sp=t.querySelector('span');sp.textContent=trStr(en?'Enabled':'Disabled')}
+  fs.classList.toggle('off',!en);const t=fs.querySelector('.pvt');if(t){t.classList.toggle('on',en);const sp=t.querySelector('span');sp.textContent=trStr(en?'Enabled':'Disabled')}
   fs.hidden=!isBw(v.entity_id)||(!vis('last_inspection_date')&&!vis('last_requalification_date'))}
 function asy(a){let s=a.damage_observed?BOLT:'';
   for(const m of pvMarks(a))if(m.col)s+=`<svg class="asi" viewBox="0 0 20 18" width="18" height="16"><title>${esc(m.tt)}</title><path d="M10 1 L19 17 H1 Z" fill="${m.col}" stroke="#fff" stroke-width="1" stroke-linejoin="round"/><text x="10" y="14.6" text-anchor="middle" font-size="11.5" font-weight="800" fill="#fff" font-family="Arial,sans-serif">${esc(m.L)}</text></svg>`;
