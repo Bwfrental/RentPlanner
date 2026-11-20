@@ -177,7 +177,7 @@ th.uas{cursor:pointer;user-select:none}th.uas:hover{text-decoration:underline}.u
 .pvb.off .pvr{opacity:.45;pointer-events:none;filter:grayscale(1)}.pvb.off>legend{color:#888}
 header .hl .r3>#dsbr{order:-1;flex:0 0 auto!important}#dsbr button.p{background:var(--orange);color:#fff;border-color:var(--orange)}#dbp{margin-bottom:16px}#dbx{margin-top:4px}
 .box.arch{background:#f1f1f1}.box.arch>*:not(.xcl){opacity:.55;filter:grayscale(.7)}.box.arch *{pointer-events:none}.box.arch .lk,.box.arch .xcl,.box.arch .xcl *{pointer-events:auto;opacity:1;filter:none}.xcl #arch{position:absolute;top:40px;right:0}.chip.archc{background:#6b6f73;color:#fff;font-size:12px;vertical-align:middle}
-#xmas{position:fixed;inset:0;pointer-events:none;z-index:8;overflow:hidden}#xmas .xg{position:absolute;left:0;right:0;top:0;height:22px;background-repeat:repeat-x;background-size:160px 22px;opacity:.8}#xmas .xt{position:absolute;bottom:0;padding:0 8px 6px;display:flex;align-items:flex-end;gap:3px}#xmas .xt>svg:not(.xs){position:relative;opacity:.9}#xmas .xs{position:absolute;left:0;bottom:0;width:100%;height:22px;opacity:.9}#xmas .xf i{position:absolute;top:-10px;border-radius:50%;background:#e4f0fa;border:1px solid #b9cfe2;opacity:.7;animation:xfall linear infinite}@keyframes xfall{0%{transform:translate(0,0)}50%{transform:translate(14px,50vh)}100%{transform:translate(-6px,105vh)}}@media(prefers-reduced-motion:reduce){#xmas .xf{display:none}}@media(max-width:700px){#xmas .xt,#xmas .xf{display:none}}@media print{#xmas{display:none}}</style></head><body>
+#xmas{position:fixed;inset:0;pointer-events:none;z-index:8;overflow:hidden}#xmas .xg{position:absolute;left:0;right:0;top:0;height:22px;background-repeat:repeat-x;background-size:160px 22px;opacity:.8}#xmas .xt{position:absolute;bottom:0;padding:0 8px 6px;display:flex;align-items:flex-end;gap:3px}#xmas .xt>svg:not(.xs){position:relative;opacity:.9}#xmas .xs{position:absolute;left:0;bottom:0;width:100%;height:22px;opacity:.9}#xmas .xf i{position:absolute;top:-10px;border-radius:50%;background:#e4f0fa;border:1px solid #b9cfe2;opacity:.7;animation:xfall linear infinite}@keyframes xfall{0%{transform:translate(0,0)}50%{transform:translate(14px,50vh)}100%{transform:translate(-6px,105vh)}}@media(prefers-reduced-motion:reduce){#xmas .xf{display:none}}@media(max-width:700px){#xmas .xt,#xmas .xf{display:none}}@media print{#xmas{display:none}}.r.z{background:#f8f8f5}.r.z:not(.sel)>.sk:not(.gl){background:#f8f8f5}</style></head><body>
 
 <div id="login">
   <h1>Asset planning</h1>
@@ -531,6 +531,7 @@ function render(){try{updPn();updEndBtn()}catch(_){}
   const rows=nest(A,0,'');
   $('#bd').classList.toggle('on',!!S.det);
   sc.innerHTML=h+rows;
+  {let z=0;sc.querySelectorAll(':scope>.r:not(.h)').forEach(r=>{if(r.classList.contains('gh')){z=0;return}if(z++%2)r.classList.add('z')})}
   if(S.first){S.first=false;goToday()}else{sc.scrollLeft=sl;sc.scrollTop=st}
 }
 $('#sc').onclick=async e=>{
