@@ -350,9 +350,13 @@ sb.auth.onAuthStateChange((_e,s)=>setTimeout(()=>s?start(s.user):stop(),0));
   const find=e=>{let t=e.target;if(!(t instanceof Element)||t.closest('#cmo'))return null;
     const ta=t.closest('textarea')||(()=>{const h=t.closest('td,label');return h&&h.querySelectorAll('textarea,input,select').length===1?h.querySelector('textarea'):null})();
     return ta&&ta.dataset.trk===undefined&&ta.dataset.trl===undefined?ta:null};
-  document.addEventListener('click',e=>{if($('#cmo'))return;const t=find(e);if(!t)return;src=t;const ro=t.disabled||t.readOnly,o=document.createElement('div');o.id='cmo';
-    o.innerHTML='<div class="cmb"><h3>Comments</h3><textarea'+(ro?' readonly':'')+'></textarea><div class="bt"><button class="p" type="button" id="cmx">Close</button></div></div>';
+  document.addEventListener('click',e=>{if($('#cmo'))return;const t=find(e);if(!t)return;src=t;const fl=!!t.closest('#wsp'),ro=t.disabled||t.readOnly,o=document.createElement('div');o.id='cmo';
+    o.innerHTML='<div class="cmb"><h3>Comments</h3><textarea'+(ro?' readonly':'')+'></textarea><div class="bt">'+(fl&&!ro?'<button class="p" type="button" id="cms">Save</button> ':'')+'<button class="'+(fl&&!ro?'':'p')+'" type="button" id="cmx">Close</button></div></div>';
     document.body.appendChild(o);const ta=o.querySelector('textarea');ta.value=t.value;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+    if(fl){/* Flow page: nothing is saved until “Save”; Close / Escape discard; a click outside the window does nothing */
+      const done=sv=>{const v=ta.value;o.remove();if(sv&&src&&src.isConnected&&!ro&&v!==src.value){src.value=v;src.dispatchEvent(new Event('change',{bubbles:true}))}src=null};
+      o.onclick=ev=>{if(ev.target.id==='cmx')done(false);else if(ev.target.id==='cms')done(true)};
+      ta.onkeydown=ev=>{if(ev.key==='Escape')done(false);else if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey))done(!ro)};return}
     ta.oninput=()=>{t.value=ta.value;t.dispatchEvent(new Event('input',{bubbles:true}))};
     o.onclick=ev=>{if(ev.target===o||ev.target.id==='cmx')shut()};
     ta.onkeydown=ev=>{if(ev.key==='Escape'||(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)))shut()}},true);}
@@ -1356,11 +1360,12 @@ $('#wsp').onchange=async e=>{
   if(t.id==='wsdays'){S.prefs.wsdays=Math.max(1,Math.min(365,parseInt(t.value)||30));savePrefs();return renderWs()}
   if(!id)return;
   const l=S.L.find(x=>x.id===id),f=t.dataset.wf,val=t.value;
+  if(f==='comments'&&l){l.comments=val.trim()||null;renderWs()}/* shown at once, the server confirms afterwards */
   if(f!=='comments'&&(!val||(f==='end_date'&&val<=l.delivery_date)||(f==='delivery_date'&&val>=l.end_date))){toast('Invalid date: the End date must be after the Delivery date.');return renderWs()}
   const{data,error}=await sb.from('project_assets').update({[f]:f==='comments'?(val.trim()||null):val}).eq('id',l.id).eq('version',l.version).select();
   if(error){if(error.code==='23P01')toastOv(l.asset_id,f==='delivery_date'?val:l.delivery_date,f==='end_date'?val:l.end_date,l.id);else toast(msg(error));return load()}
   if(!data.length){toast('Modified in the meantime by someone else: data reloaded, please retry.');return load()}
-  toast('Saved.');load();
+  Object.assign(l,data[0]);toast('Saved.');load();
 };
 $('#wsp').onclick=e=>{
   if(e.target.closest('.wz'))return;
