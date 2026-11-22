@@ -716,11 +716,12 @@ document.addEventListener('dragleave',e=>{const z=e.target.closest&&e.target.clo
 document.addEventListener('drop',e=>{const z=e.target.closest&&e.target.closest('#dsz');if(z){e.preventDefault();z.classList.remove('over');dsPick(e.dataTransfer.files[0])}});
 document.addEventListener('change',e=>{if(e.target.id==='dsf'){dsPick(e.target.files[0]);e.target.value=''}});
 /* End date typed by hand: the change is applied only when the field is left (click elsewhere, Save, Close…), not while the date is being typed (typing "2" must not be read as 02/11/…) */
+const EDX=t=>t&&t.type==='date'&&(t.dataset.f==='end_date'||t.dataset.wf==='end_date');
+document.addEventListener('focusin',e=>{if(EDX(e.target))e.target._foc=1},true);
+document.addEventListener('focusout',e=>{const t=e.target;if(!EDX(t))return;t._foc=0;if(t._bl){t._bl=0;t._rd=1;try{t.dispatchEvent(new Event('change',{bubbles:true}))}finally{t._rd=0}}},true);
 ['change','input'].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target;
-  if(!t||t.type!=='date'||!(t.dataset.f==='end_date'||t.dataset.wf==='end_date')||t._rd)return;
-  if(document.activeElement!==t)return;
-  e.stopImmediatePropagation();
-  if(!t._bl){t._bl=1;t.addEventListener('blur',()=>{t._bl=0;t._rd=1;try{t.dispatchEvent(new Event('change',{bubbles:true}))}finally{t._rd=0}},{once:true})}
+  if(!EDX(t)||t._rd||!t._foc)return;
+  e.stopImmediatePropagation();t._bl=1;
 },true));
 function drawAsset(){
   const{a,v}=S.as,eoA=!a||canEnt(a.entity_id),cA=a?can('asset_edit')&&eoA:can('asset_create'),cB=can('asset_lifecycle')&&eoA,cC=!!a&&can('asset_edit_cp')&&eoA,ro=!(cA||cB||cC),LCF=['lifecycle','destruction_date','sale_date','loss_date'];
