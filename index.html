@@ -309,14 +309,15 @@ async function trSeed(miss){
   for(let i=0;i<rows.length;i+=100){const{error}=await sb.from('ui_translations').upsert(rows.slice(i,i+100),{onConflict:'key',ignoreDuplicates:true});if(error)return}
   toast('Default translations loaded.');S.seeded=false;load();
 }
-function renderLang(){const b=$('#blg');if(b)b.innerHTML=flagH(S.lang||'English')+' <span>'+esc(S.lang||'English')+'</span>'}
+function renderLang(){for(const id of['#blg','#thlg']){const b=$(id);if(b)b.innerHTML=flagH(S.lang||'English')+' <span>'+esc(S.lang||'English')+'</span>'}}
 function langMenu(){
   let m=$('#lgm');if(m){m.remove();return}
   m=document.createElement('div');m.id='lgm';m.setAttribute('data-notr','');
   m.innerHTML=DS_LANG.map(l=>`<div data-lg="${l}"${l===S.lang?' class="cur"':''}>${flagH(l)} ${l}</div>`).join('');
-  const r=$('#blg').getBoundingClientRect();m.style.cssText=`top:${r.bottom+4}px;right:${innerWidth-r.right}px`;document.body.appendChild(m);
+  const r=($('#thlg')||$('#blg')).getBoundingClientRect();m.style.cssText=`top:${r.bottom+4}px;right:${innerWidth-r.right}px;z-index:60`;document.body.appendChild(m);
 }
-document.addEventListener('click',e=>{const d=e.target.closest('[data-lg]');if(d){setLang(d.dataset.lg);$('#lgm')?.remove();return}if(!e.target.closest('#blg'))$('#lgm')?.remove()});
+document.addEventListener('click',e=>{const d=e.target.closest('[data-lg]');if(d){setLang(d.dataset.lg);$('#lgm')?.remove();return}if(!e.target.closest('#blg,#thlg'))$('#lgm')?.remove()});
+document.addEventListener('click',e=>{if(e.target.closest('#thlg'))langMenu()});
 function setLang(l){S.lang=l;TR.lang=l;TR.active=l!=='English'||Object.values(TR.d).some(v=>v&&v.English);S.prefs.lang=l;savePrefs();renderLang();trAll();try{fillMo()}catch(_){}}
 const myLang=()=>S.E.find(e=>e.id===S.me.entity_id)?.language||'',trOK=L=>isAdm(S.me)||(L!=='English'&&L===myLang());
 function trHtml(){
@@ -360,7 +361,7 @@ sb.auth.onAuthStateChange((_e,s)=>setTimeout(()=>s?start(s.user):stop(),0));
     ta.oninput=()=>{t.value=ta.value;t.dispatchEvent(new Event('input',{bubbles:true}))};
     o.onclick=ev=>{if(ev.target===o||ev.target.id==='cmx')shut()};
     ta.onkeydown=ev=>{if(ev.key==='Escape'||(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)))shut()}},true);}
-function stop(){TH.on=false;TH.only=false;document.getElementById('thhome')?.remove();{const m=$('#modal');m.hidden=true;m.innerHTML=''}S.me=S.real=null;S.sim=false;sb.removeAllChannels();$('#app').hidden=true;$('#login').hidden=false}
+function stop(){TH.on=false;TH.only=false;document.getElementById('thhome')?.remove();document.getElementById('thbar')?.remove();document.body.classList.remove('thon');{const m=$('#modal');m.hidden=true;m.innerHTML=''}S.me=S.real=null;S.sim=false;sb.removeAllChannels();$('#app').hidden=true;$('#login').hidden=false}
 async function start(u){
   if(S.real&&S.real.auth_user_id===u.id)return;
   const{data}=await sb.from('profiles').select('*').eq('auth_user_id',u.id).maybeSingle();
@@ -1194,7 +1195,13 @@ const TH={on:false,only:false,P:[],L:[],proj:null};
 const canHouse=()=>!!S.me&&(isAdm(S.me)||can('tech_returns')||can('asset_house')||(can('project_lines')&&can('ptype_rental')));
 const houseOnlyUser=p=>!!p&&p.project_type==='Rental'&&!p.archived&&can('asset_house')&&!(can('project_edit')&&ptOK(p.project_type))&&!(can('project_lines')&&ptOK(p.project_type));
 const thSt=l=>l.workshop_return?'green':l.asset_not_returned?'red':'grey';
-function techStart(){TH.only=true;$('#login').hidden=true;$('#app').hidden=true;
+function techBar(){let b=document.getElementById('thbar');if(!b){b=document.createElement('div');b.id='thbar';b.setAttribute('data-notr','');
+    b.style.cssText='position:fixed;top:0;left:0;right:0;height:46px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;background:#2b2b2b;color:#fff;box-sizing:border-box';
+    b.innerHTML='<span id="thnm" style="font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span><button id="thlg" style="height:32px;background:#fff;color:#222"></button>';document.body.appendChild(b);
+    const st=document.createElement('style');st.id='thsty';st.textContent='body.thon #modal{padding-top:46px!important}body.thon #thsv,body.thon #thcx{top:54px!important}';document.head.appendChild(st)}
+  b.querySelector('#thnm').textContent=S.real?.name||'';document.body.classList.add('thon');renderLang();
+  (async()=>{try{const{data}=await sb.from('ui_translations').select('*');if(data&&data.length)trLoad(data)}catch(_){}})()}
+function techStart(){TH.only=true;techBar();$('#login').hidden=true;$('#app').hidden=true;
   let h=document.getElementById('thhome');if(!h){h=document.createElement('div');h.id='thhome';h.style.cssText='position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:var(--bg,#f3f3ee);z-index:5';
     h.innerHTML='<button id="thgo" class="p" style="font-size:38px;padding:34px 80px;border-radius:16px">Returns check</button><button id="thso2">Sign out</button>';document.body.appendChild(h)}h.hidden=false}
 async function techOpen(){
