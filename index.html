@@ -1200,7 +1200,7 @@ function techBar(){let b=document.getElementById('thbar');if(!b){b=document.crea
     b.innerHTML='<span id="thnm" style="font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span><button id="thlg" style="height:32px;background:#fff;color:#222"></button>';document.body.appendChild(b);
     const st=document.createElement('style');st.id='thsty';st.textContent='body.thon #modal{padding-top:46px!important}body.thon #thsv,body.thon #thcx{top:54px!important}';document.head.appendChild(st)}
   b.querySelector('#thnm').textContent=S.real?.name||'';document.body.classList.add('thon');renderLang();
-  (async()=>{try{const{data}=await sb.from('ui_translations').select('*');if(data&&data.length)trLoad(data)}catch(_){}})()}
+  (async()=>{try{const{data}=await sb.from('app_settings').select('*');S.CFG=Object.fromEntries((data||[]).map(x=>[x.key,x.value]));if(window.bisonArm)bisonArm()}catch(_){}try{const{data}=await sb.from('ui_translations').select('*');if(data&&data.length)trLoad(data)}catch(_){}})()}
 function techStart(){TH.only=true;techBar();$('#login').hidden=true;$('#app').hidden=true;
   let h=document.getElementById('thhome');if(!h){h=document.createElement('div');h.id='thhome';h.style.cssText='position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:var(--bg,#f3f3ee);z-index:5';
     h.innerHTML='<button id="thgo" class="p" style="font-size:38px;padding:34px 80px;border-radius:16px">Returns check</button><button id="thso2">Sign out</button>';document.body.appendChild(h)}h.hidden=false}
@@ -2509,7 +2509,7 @@ const BS_FRONT=`<svg id="bfr" viewBox="0 20 300 330" xmlns="http://www.w3.org/20
   document.body.appendChild(el);
   const zs=el.querySelector('#bzs'),zf=el.querySelector('#bzf'),rgs=el.querySelector('#rgs');
   let T=0,run=false,stop=false,raf=0,t0=0,ps=0,phase='',t_start=0,lx=-1,ly=-1;
-  const secs=()=>{const v=typeof S!=='undefined'&&S.CFG?S.CFG.idle_seconds:undefined,n=v===undefined||v===''||v===null?120:+v;return isNaN(n)?120:n};
+  const secs=()=>{if(typeof S==='undefined'||!S.CFG)return 0;const v=S.CFG.idle_seconds,n=v===undefined||v===''||v===null?120:+v;return isNaN(n)?120:n};
   const arm=()=>{clearTimeout(T);const n=secs();if(n>0&&!run&&!matchMedia('(prefers-reduced-motion: reduce)').matches)T=setTimeout(start,n*1000)};
   window.bisonArm=arm;window.bisonStart=()=>start();
   const act=e=>{
