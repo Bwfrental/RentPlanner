@@ -1791,7 +1791,8 @@ const XM_GROUND=(W,H,rnd,top,amp,col,step)=>{const pts=[];for(let x=-step;x<=W+s
   return `<path d="${d}L${W+60} ${H}Z" fill="${col}"/>`};
 const XM_FIR=(x,b,h,sh)=>{const w=h*.56,g=sh?['#2c6a4b','#357a55','#3f8a60']:['#245a3f','#2d6b49','#367a54'];let o=`<rect x="${XM_R1(x-1.6)}" y="${XM_R1(b-h*.12)}" width="3.2" height="${XM_R1(h*.12)}" fill="#6b4423"/>`;
   [[.12,1],[.36,.78],[.6,.55]].forEach(([t,k],i)=>{const y0=b-h*(t+.34),y1=b-h*t,ww=w*k/2;o+=`<path d="M${XM_R1(x)} ${XM_R1(y0-h*.12)}L${XM_R1(x+ww)} ${XM_R1(y1)}L${XM_R1(x-ww)} ${XM_R1(y1)}Z" fill="${g[i]}"/><path d="M${XM_R1(x)} ${XM_R1(y0-h*.12)}L${XM_R1(x+ww*.5)} ${XM_R1(y0+h*.06)}Q${XM_R1(x)} ${XM_R1(y0+h*.02)} ${XM_R1(x-ww*.5)} ${XM_R1(y0+h*.06)}Z" fill="#f4f8fb" opacity=".9"/>`});return o};
-const XM_FOREST=(cx,b,n,rnd,hmax)=>{const t=[];for(let i=0;i<n;i++)t.push([cx+(rnd()-.5)*n*13,b-rnd()*7,hmax*(.45+rnd()*.55),rnd()>.5]);t.sort((p,q)=>p[1]-q[1]);return t.map(([x,y,h,s])=>XM_FIR(x,y,h,s)).join('')};
+let XM_TC=0;const XM_TREE=(x,y,h,sh)=>{const i=XM_TC++;return `<g class="xtr" data-t="${i}"${XS.tgone.has(i)?' style="display:none"':''}><rect x="${XM_R1(x-h*.3)}" y="${XM_R1(y-h*1.1)}" width="${XM_R1(h*.6)}" height="${XM_R1(h*1.15)}" fill="#000" fill-opacity="0"/>${XM_FIR(x,y,h,sh)}</g>`};
+const XM_FOREST=(cx,b,n,rnd,hmax)=>{const t=[];for(let i=0;i<n;i++)t.push([cx+(rnd()-.5)*n*13,b-rnd()*7,hmax*(.45+rnd()*.55),rnd()>.5]);t.sort((p,q)=>p[1]-q[1]);return t.map(([x,y,h,s])=>XM_TREE(x,y,h,s)).join('')};
 const XM_HOUSE=(x,b,w,h,wall,roof,rnd,hi,off)=>{const rh=w*.5,nw=w>40?2:1;let o=`<g class="xh${off?' off':''}" data-h="${hi}"><rect x="${XM_R1(x)}" y="${XM_R1(b-h)}" width="${w}" height="${h}" fill="${wall}"/><path d="M${XM_R1(x-4)} ${XM_R1(b-h)}L${XM_R1(x+w/2)} ${XM_R1(b-h-rh)}L${XM_R1(x+w+4)} ${XM_R1(b-h)}Z" fill="${roof}"/><path d="M${XM_R1(x-4)} ${XM_R1(b-h)}L${XM_R1(x+w/2)} ${XM_R1(b-h-rh)}L${XM_R1(x+w+4)} ${XM_R1(b-h)}Q${XM_R1(x+w*(.3+rnd()*.4))} ${XM_R1(b-h-6)} ${XM_R1(x-4)} ${XM_R1(b-h)}Z" fill="#f6fafc"/>`;
   const cx=x+w*(rnd()>.5?.7:.25);o+=`<rect x="${XM_R1(cx)}" y="${XM_R1(b-h-rh*.85)}" width="5" height="${XM_R1(rh*.6)}" fill="#6b3b24"/><rect x="${XM_R1(cx-1)}" y="${XM_R1(b-h-rh*.85)}" width="7" height="2" fill="#f6fafc"/>`;
   const wy=b-h*.78,ww=Math.min(10,w*.26);for(let i=0;i<nw;i++){const wx=nw===1?x+w*.18:x+w*(.1+i*.55);const cr=`M${XM_R1(wx+ww/2)} ${XM_R1(wy)}v${XM_R1(ww*.9)}M${XM_R1(wx)} ${XM_R1(wy+ww*.45)}h${XM_R1(ww)}`;
@@ -1823,7 +1824,7 @@ const XM_BALL=(id,k)=>{const r=XM_BR[k];let o=`<g class="xsb" data-b="${id}"><ci
   if(k===0)o+=`<g class="xface"><circle cx="-1.9" cy="-1.1" r=".85" fill="#222"/><circle cx="1.9" cy="-1.1" r=".85" fill="#222"/><path d="M0 .5L7 1.5L0 2.5Z" fill="#f08a24"/><path d="M-4.6 -3.6Q-4 -9 1 -11.5Q2 -8 4.6 -3.6Z" fill="#c0392b"/><path d="M-5 -3.2H5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="1.2" cy="-11.8" r="1.4" fill="#fff"/></g>`;
   if(k===1)o+=`<g class="xarm"><path d="M-6.5 -1.5L-16 -9M-16 -9L-18 -7M-16 -9L-17 -12M6.5 -1.5L16 -8M16 -8L18 -11M16 -8L18.5 -7" stroke="#6b4423" stroke-width="1.4" stroke-linecap="round" fill="none"/></g>`;
   return o+'</g>'};
-const XM_BOTTOM=(W,H)=>{const rnd=XM_RND(20261225),b0=H-11;let o=`<defs><radialGradient id="xwg"><stop offset="0" stop-color="#ffd66b" stop-opacity=".75"/><stop offset="1" stop-color="#ffd66b" stop-opacity="0"/></radialGradient><radialGradient id="xfg"><stop offset="0" stop-color="#ff9a2e" stop-opacity=".7"/><stop offset="1" stop-color="#ff9a2e" stop-opacity="0"/></radialGradient></defs>`;
+const XM_BOTTOM=(W,H)=>{XM_TC=0;const rnd=XM_RND(20261225),b0=H-11;let o=`<defs><radialGradient id="xwg"><stop offset="0" stop-color="#ffd66b" stop-opacity=".75"/><stop offset="1" stop-color="#ffd66b" stop-opacity="0"/></radialGradient><radialGradient id="xfg"><stop offset="0" stop-color="#ff9a2e" stop-opacity=".7"/><stop offset="1" stop-color="#ff9a2e" stop-opacity="0"/></radialGradient></defs>`;
   o+=XM_GROUND(W,H,rnd,13,12,'#c9d9e8',26);
   const F=[];for(let i=0;i<9;i++){F.push([W*((i+.15+rnd()*.7)/9),Math.round(3+rnd()*6),28+rnd()*26])}
   F.forEach(([x,n,h],i)=>{o+=XM_FOREST(x,b0-4-rnd()*8,n,rnd,h)});
@@ -1839,7 +1840,7 @@ const XM_BOTTOM=(W,H)=>{const rnd=XM_RND(20261225),b0=H-11;let o=`<defs><radialG
   E.forEach((e,i)=>{if(XS.elfGone.has(i))return;const dr=e[0]<fx?-1:1;o+=`<g class="xel" data-e="${i}"><g class="xrot" style="transform-origin:${XM_R1(e[0])}px ${XM_R1(e[1])}px;--r:${dr*90}deg">${XM_ELF(...e)}</g><g class="xzz" transform="translate(${XM_R1(e[0]+dr*24*e[2])} ${XM_R1(e[1]-9*e[2])})"><text x="0" y="0" style="animation-delay:0s">z</text><text x="3" y="-4" style="animation-delay:.65s;font-size:8px">Z</text><text x="7" y="-9" style="animation-delay:1.3s;font-size:7px">Z</text><text x="2" y="-13" style="animation-delay:1.95s;font-size:5px">z</text></g></g>`});
   o+=`<g class="xfire">${XM_FIRE(fx,fb)}</g><g id="xspit"></g>`;
   o+=XM_GROUND(W,H,rnd,0,8,'#fbfdfe',16);
-  for(let i=0;i<7;i++){const x=W*(rnd()),h=14+rnd()*16,tb=H-3-rnd()*3,sh=rnd()>.5;o+=`<g class="xtr" data-t="${i}"${XS.tgone.has(i)?' style="display:none"':''}><rect x="${XM_R1(x-h*.3)}" y="${XM_R1(tb-h*1.1)}" width="${XM_R1(h*.6)}" height="${XM_R1(h*1.15)}" fill="#000" fill-opacity="0"/>${XM_FIR(x,tb,h,sh)}</g>`}
+  for(let i=0;i<7;i++){const x=W*(rnd()),h=14+rnd()*16,tb=H-3-rnd()*3,sh=rnd()>.5;o+=XM_TREE(x,tb,h,sh)}
   if(!XS.balls){const r=XM_RND(31337),xs=[];XS.balls=[];XS.towers=[];for(let id=0;id<15;id++){XS.balls.push({k:id%3});let xf,t=0;do{xf=.02+r()*.96;t++}while(t<80&&xs.some(q=>Math.abs(q-xf)*W<28));xs.push(xf);XS.towers.push({xf,ids:[id]})}}
   o+='<g id="xballs">'+XS.balls.map((b,id)=>XM_BALL(id,b.k)).join('')+'</g><g id="xtop"></g>';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${o}</svg>`};
@@ -1959,17 +1960,19 @@ function xmRoast(el,i){const M=XM_META,svg=xmSvg(),NS='http://www.w3.org/2000/sv
 /* garland: click = sway for 3 s (decaying), pull = the thread stretches, pull too far = the whole garland falls */
 function xhSwing(i,amp){const g=document.querySelector(`.xhi[data-i="${i}"]`);if(!g)return;g.style.setProperty('--a',amp);g.classList.remove('sw');void g.getBoundingClientRect();g.classList.add('sw');g.onanimationend=()=>g.classList.remove('sw')}
 const xhFree=el=>{if(el.closest('button,a,input,select,textarea,label,img,svg'))return false;return getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)'||el.tagName==='HEADER'};
-let XHD=null;
+let XHD=null,XHL=null;
+function xhDrop(d){if(XHL){XHL.remove();XHL=null}if(d&&d.orig)d.orig.style.visibility=''}
+function xhLift(){const d=XHD,hd=document.querySelector('header.xm');if(!d||!d.g||!hd||d.lift)return;const r=hd.getBoundingClientRect(),ov=document.createElement('div'),NS='http://www.w3.org/2000/svg';ov.id='xhov';ov.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:99999;pointer-events:none;overflow:visible`;const sv=document.createElementNS(NS,'svg');sv.setAttribute('width',r.width);sv.setAttribute('height',r.height);sv.style.cssText='position:absolute;left:0;top:0;overflow:visible';const c=d.g.cloneNode(true);c.classList.remove('sw');sv.appendChild(c);ov.appendChild(sv);document.body.appendChild(ov);d.orig=d.g;d.orig.style.visibility='hidden';d.g=c;d.lift=true;XHL=ov}
 document.addEventListener('pointerdown',e=>{if(e.button||XD||!XS.garland)return;const hd=document.querySelector('header.xm'),d=hd&&hd.querySelector(':scope>.xhd');if(!d)return;
   const el=document.elementFromPoint(e.clientX,e.clientY);if(!el||!hd.contains(el)||!xhFree(el))return;
   const r=hd.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;let best=-1,bd=1e9;XH.forEach((o,i)=>{const dd=Math.hypot(px-o.cx,py-o.cy);if(dd<=o.r&&dd<bd){bd=dd;best=i}});
   if(best<0)return;e.preventDefault();XHD={i:best,x0:e.clientX,y0:e.clientY,moved:false,g:d.querySelector(`.xhi[data-i="${best}"]`)};XHD.g?.classList.remove('sw')});
 document.addEventListener('pointermove',e=>{if(!XHD)return;const dx=e.clientX-XHD.x0,dy=e.clientY-XHD.y0;if(!XHD.moved&&Math.hypot(dx,dy)<5)return;XHD.moved=true;e.preventDefault();
-  const o=XH[XHD.i],g=XHD.g;if(!g)return;g.querySelector('.xhb').style.transform=`translate(${XM_R1(dx)}px,${XM_R1(dy)}px)`;const l=g.querySelector('.xhl');l.setAttribute('x2',XM_R1(o.ax+dx));l.setAttribute('y2',XM_R1(o.te+dy));
-  if(e.clientY>innerHeight/2){XHD=null;xhFall()}},{passive:false});
+  xhLift();const o=XH[XHD.i],g=XHD.g;if(!g)return;g.querySelector('.xhb').style.transform=`translate(${XM_R1(dx)}px,${XM_R1(dy)}px)`;const l=g.querySelector('.xhl');l.setAttribute('x2',XM_R1(o.ax+dx));l.setAttribute('y2',XM_R1(o.te+dy));
+  if(e.clientY>innerHeight/2){const dd=XHD;XHD=null;xhDrop(dd);xhFall()}},{passive:false});
 document.addEventListener('pointerup',e=>{if(!XHD)return;const d=XHD;XHD=null;const o=XH[d.i];if(!d.moved)return xhSwing(d.i,(Math.random()<.5?-1:1)*o.amp);
   const dx=e.clientX-d.x0,dy=e.clientY-d.y0,g=d.g,b=g.querySelector('.xhb'),l=g.querySelector('.xhl'),t0=performance.now();
-  const step=t=>{const k=(t-t0)/700;if(k>=1||!document.body.contains(g)){b.style.transform='';l.setAttribute('x2',o.ax);l.setAttribute('y2',o.te);xhSwing(d.i,Math.max(-o.amp*1.4,Math.min(o.amp*1.4,dx*.25))||o.amp);return}
+  const step=t=>{const k=(t-t0)/700;if(k>=1||!document.body.contains(g)){xhDrop(d);b.style.transform='';l.setAttribute('x2',o.ax);l.setAttribute('y2',o.te);xhSwing(d.i,Math.max(-o.amp*1.4,Math.min(o.amp*1.4,dx*.25))||o.amp);return}
     const f=Math.exp(-5*k)*Math.cos(k*13);b.style.transform=`translate(${XM_R1(dx*f)}px,${XM_R1(dy*f)}px)`;l.setAttribute('x2',XM_R1(o.ax+dx*f));l.setAttribute('y2',XM_R1(o.te+dy*f));requestAnimationFrame(step)};requestAnimationFrame(step)});
 function xhFall(){const hd=document.querySelector('header.xm'),d=hd&&hd.querySelector(':scope>.xhd'),x=document.getElementById('xmas');if(!d||!x)return;XS.garland=false;const r=hd.getBoundingClientRect();
   d.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:9;pointer-events:none`;x.appendChild(d);
