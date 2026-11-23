@@ -1209,7 +1209,7 @@ function techStart(){TH.only=true;techBar();$('#login').hidden=true;$('#app').hi
 async function techOpen(){
   TH.on=true;TH.proj=null;TH.L=[];const m=$('#modal');m.hidden=false;
   m.innerHTML=`<div class="box"><h2 style="font-size:26px">Returns check</h2><p class="inf" style="font-size:15px">Select the Rental project whose returns you are checking (only projects with an asset in “Return to be confirmed” are listed).</p>
-  <div style="max-width:720px"><input id="thq" type="search" placeholder="Project name or location / client…" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:20px;padding:12px"><div id="thl" style="margin-top:6px"></div></div>
+  <div style="max-width:720px;margin-top:18px"><input id="thq" type="search" placeholder="Project name or location / client…" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:20px;padding:12px"><div id="thl" style="margin-top:6px"></div></div>
   <div class="bt"><button id="thcx">Close</button>${TH.only?'<button id="thso">Sign out</button>':''}</div></div>`;
   const{data,error}=await sb.rpc('tech_projects');if(error)toast(msg(error));TH.P=data||[];thFilter();const q=$('#thq');if(q)q.focus()}
 function thFilter(){const q=($('#thq')?.value||'').trim().toLowerCase(),l=$('#thl');if(!l)return;
