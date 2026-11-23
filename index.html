@@ -1216,7 +1216,7 @@ async function shUrls(paths){const need=paths.filter(p=>p&&!S.sh.urls[p]);if(!ne
   const{data}=await sb.storage.from('second-hand').createSignedUrls(need,3600);(data||[]).forEach(x=>{if(x.signedUrl)S.sh.urls[x.path]=x.signedUrl})}
 async function renderSh(){const el=$('#shp');if(!S.sh.loaded)el.innerHTML='<p class="inf">Loading…</p>';
   const{data,error}=await sb.from('second_hand_offers').select('*').order('created_at',{ascending:false});
-  if(error){el.innerHTML='<p class="inf">The “Second hand” page is not installed yet (run script 95).</p>';return}
+  if(error){el.innerHTML='<p class="inf">The “Second hand” page cannot load: '+esc(error.message||'')+' (script 95 run?).</p>';return}
   S.sh.rows=data||[];S.sh.loaded=true;await shUrls(S.sh.rows.map(r=>r.image_path));drawSh()}
 function drawSh(){const el=$('#shp'),q=S.sh.q.toLowerCase(),can1=S.me&&(isAdm(S.me)||S.me.profile==='Entity admin');
   const rows=S.sh.rows.filter(r=>(!S.sh.st||r.status===S.sh.st)&&(!q||[r.asset_name,r.asset_type,r.model,r.description,S.EN[r.entity_id]].some(x=>(x||'').toLowerCase().includes(q))));
