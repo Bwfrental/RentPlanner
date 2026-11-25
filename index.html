@@ -2408,8 +2408,8 @@ function dcrCell(p,v){
 function dcrMenu(){
   const p=S.ed.p;if(!p)return;const cur=dcrOf(p),sent=!!(cur&&cur.sent_date);pushModal();
   $('#modal').innerHTML=`<div class="box" style="max-width:520px"><h2>Delivery condition report</h2><p class="inf">Current status: <b>${sent?'Delivery condition report sent on '+fr(cur.sent_date):'Delivery condition report to be sent'}</b></p>
-  <label>Comment<textarea id="dcc" rows="3">${esc(cur?.comment||'')}</textarea></label>
-  <label style="margin-top:8px">Date the delivery condition report was sent<input type="date" id="dcd" value="${sent?cur.sent_date:TODAY}" max="${TODAY}"></label>
+  <label style="display:flex;flex-direction:column;gap:4px;align-items:stretch">Comment<textarea id="dcc" rows="3" style="width:100%;box-sizing:border-box;resize:vertical">${esc(cur?.comment||'')}</textarea></label>
+  <label style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;margin-top:10px">Date the delivery condition report was sent<input type="date" id="dcd" value="${sent?cur.sent_date:TODAY}" max="${TODAY}"></label>
   <div class="bt"><button class="p" id="dcok">${sent?'Change the date':'Delivery condition report sent'}</button>${sent?'<button id="dcrv">Back to “to be sent”</button>':''}<button id="dcsv">Save the comment</button><button id="dcno">Cancel</button></div></div>`;
   const fin=(d)=>{const c=$('#dcc').value.trim();S.ed.dcrNew=d||c?{sent_date:d||null,comment:c}:null;closeModal()};
   $('#dcno').onclick=()=>closeModal();
