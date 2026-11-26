@@ -1184,13 +1184,13 @@ function dsCols(){const root=$('#dbx');if(!root)return;const sub=dsSub();S.prefs
         h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up)});
       h.addEventListener('click',e=>e.stopPropagation())})})}
 function durSvg(items){const n=items.length;if(!n)return '<p class="inf">No data.</p>';
-  const BW=60,bw=40,L0=44,T0=26,Hh=200,mx=Math.max(1,...items.map(x=>x.t)),step=[1,2,5,10,20,25,50,100,200,500,1000].find(x=>mx/x<=6)||2000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,mxl=Math.max(...items.map(x=>x.l.length)),B=Math.round(14+Math.sin(50*Math.PI/180)*Math.min(mxl,34)*7.6+12),W=L0+n*BW+14+Math.round(Math.min(mxl,34)*4.9);
+  const BW=60,bw=40,L0=44,T0=26,Hh=200,mx=Math.max(1,...items.map(x=>x.t)),step=[1,2,5,10,20,25,50,100,200,500,1000].find(x=>mx/x<=6)||2000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,mxl=Math.max(...items.map(x=>Math.max(x.l.length,(x.m||'').length))),B=Math.round(26+Math.sin(50*Math.PI/180)*Math.min(mxl,34)*7.6+12),W=L0+n*BW+14+Math.round(Math.min(mxl,34)*4.9);
   let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+5}" text-anchor="end" font-size="14" fill="var(--grey)">${v}</text>`;
   items.forEach((it,i)=>{const x=L0+i*BW+(BW-bw)/2,nm=it.l.length>34?it.l.slice(0,33)+'…':it.l,he=y(0)-y(it.e),hr=y(it.e)-y(it.t);
     g+=`<rect x="${x}" y="${y(it.e)}" width="${bw}" height="${Math.max(0,he)}" fill="#d4652f"><title>${esc(it.tip)}</title></rect><rect x="${x}" y="${y(it.t)}" width="${Math.max(0,hr)}" height="0" fill="none"/><rect x="${x}" y="${y(it.t)}" width="${bw}" height="${Math.max(0,hr)}" fill="#9bbfd9"><title>${esc(it.tip)}</title></rect>
     <text x="${x+bw/2}" y="${y(it.t)-5}" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">${it.t}</text>
     ${it.e>0?(he>=18?`<text x="${x+bw/2}" y="${y(it.e)+15}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">${it.e}</text>`:`<text x="${x+bw/2}" y="${y(it.e)-3}" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3510">${it.e}</text>`):''}
-    <g transform="translate(${x+bw/2+4},${y(0)+10}) rotate(50)"><text font-size="14" fill="var(--ink)">${esc(nm)}</text></g>`});
+    <g transform="translate(${x+bw/2+4},${y(0)+10}) rotate(50)"><text font-size="14" fill="var(--ink)">${esc(nm)}</text>${it.m?`<text y="16" font-size="13" fill="var(--grey)">${esc(it.m.length>34?it.m.slice(0,33)+'…':it.m)}</text>`:''}</g>`});
   return `<div style="width:100%"><svg viewBox="0 0 ${W} ${T0+Hh+B}" style="display:block;margin:0 auto;width:100%;max-width:${W}px;height:auto">${g}</svg></div>`}
 function renderDashBody0(){
   const E=new Set(dsE()),T=new Set(dsT()),aok=a=>(!E.size||E.has(a.entity_id))&&(!T.size||T.has(a.asset_type));
@@ -1293,7 +1293,7 @@ function renderDashBody0(){
     // 10 longest "In progress" Maintenance projects: days elapsed since the delivery date (bottom) + days remaining until the end date (top)
     const dd=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
     const durRows=[];S.L.forEach(l=>{const p=S.PJ[l.project_id],a=S.AM[l.asset_id];if(!p||!a||p.project_type!=='Maintenance'||p.active===false||p.status!=='In progress'||!aok(a)||!pok(p)||!l.delivery_date||!l.end_date)return;
-      const t=Math.max(0,dd(l.delivery_date,l.end_date)),e=Math.max(0,Math.min(t,dd(l.delivery_date,TODAY)));durRows.push({l:(p.project_name||'')+' – '+(a.name||''),t,e,tip:`${p.project_name} – ${a.name}: ${fr(l.delivery_date)} → ${fr(l.end_date)}`})});
+      const t=Math.max(0,dd(l.delivery_date,l.end_date)),e=Math.max(0,Math.min(t,dd(l.delivery_date,TODAY)));durRows.push({l:(p.project_name||'')+' – '+(a.name||''),m:a.model||'',t,e,tip:`${p.project_name} – ${a.name}: ${fr(l.delivery_date)} → ${fr(l.end_date)}`})});
     durRows.sort((x,y)=>y.t-x.t||x.l.localeCompare(y.l));
     const durCard=`<div class="dc" style="flex:1 1 480px;min-width:0;margin-bottom:0;display:flex;flex-direction:column"><h4>Longest Maintenance projects in progress</h4><p class="inf" style="margin:0 0 6px">Days between the delivery date and the end date: elapsed time (bottom) and remaining time (top).</p><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0">${durSvg(durRows.slice(0,10))}<div style="display:flex;gap:4px 18px;justify-content:center;margin-top:6px;font-size:14px"><span><i style="display:inline-block;width:11px;height:11px;background:#d4652f;margin-right:5px"></i>Elapsed time</span><span><i style="display:inline-block;width:11px;height:11px;background:#9bbfd9;margin-right:5px"></i>Remaining time</span></div></div></div>`;
     const wfind=n=>wsl.find(w=>norm(w)===norm(n));
