@@ -856,6 +856,19 @@ async function delAsset(){
   if(error)return toast(msg(error));
   closeModal();toast('Asset deleted.');load();
 }
+/* Update guarded by the version number. If the row changed in the meantime (by anyone, or by an automatic rule), the row is read again:
+   when nobody touched the fields that you are changing, your changes are applied on top of the new version (no error); otherwise a real conflict is reported. */
+async function verUpd(table,old,pay){
+  const r=await sb.from(table).update(pay).eq('id',old.id).eq('version',old.version).select();
+  if(r.error||(r.data&&r.data.length))return r;
+  const f=await sb.from(table).select('*').eq('id',old.id).maybeSingle();
+  if(f.error||!f.data)return r;
+  const nm=x=>x==null||x===''?'':typeof x==='object'?JSON.stringify(x):String(x),ch=Object.keys(pay).filter(k=>nm(pay[k])!==nm(old[k]));
+  if(ch.some(k=>nm(f.data[k])!==nm(old[k])))return{data:[],error:null,conflict:ch.filter(k=>nm(f.data[k])!==nm(old[k]))};
+  if(!ch.length)return{data:[f.data],error:null};
+  const p2={};ch.forEach(k=>p2[k]=pay[k]);
+  return await sb.from(table).update(p2).eq('id',old.id).eq('version',f.data.version).select();
+}
 async function saveAsset(){const gen0=S.mgen||0;
   const{a,v}=S.as,num=x=>x===''||x==null?null:Number(x),hose=v.asset_type==='Hose',L=v.lifecycle;
   const vis=k=>afVisible(v.asset_type,k);
@@ -885,7 +898,7 @@ async function saveAsset(){const gen0=S.mgen||0;
     ce:!!v.ce,damage_observed:!!v.damage_observed,outdoor:!!v.outdoor,manufacture_date:v.manufacture_date,active:!!v.active,lifecycle:L,destruction_date:L==='Scrapped'?v.destruction_date||null:null,sale_date:L==='Sold'?v.sale_date||null:null,loss_date:L==='Lost'?v.loss_date||null:null,};
   if(!a||L==='Scrapped'||L==='Sold'||loc!==(S.as.loc0||'').trim()){row.location_name=loc||null;row.location_date=loc?TODAY:null}
   try{
-    if(a){const{data,error}=await sb.from('assets').update(row).eq('id',a.id).eq('version',a.version).select();if(error)throw error;
+    if(a){const{data,error}=await verUpd('assets',a,row);if(error)throw error;
       if(!data.length){toast('Modified in the meantime by someone else: data reloaded, please retry.');return load()}}
     else{const{error}=await sb.from('assets').insert(row);if(error)throw error}
     await pvSave(a?.id,row.name);
@@ -956,7 +969,7 @@ $('#sc').addEventListener('pointerdown',e=>{
         else if(!confirm(head.replace(/<[^>]+>/g,'')))mode='no';
         if(mode==='no'){S.dragLock=false;load();return}
         if(mode==='one'){
-          const{data,error}=await sb.from('project_assets').update({[f]:nd}).eq('id',l.id).eq('version',l.version).select();
+          const{data,error}=await verUpd('project_assets',l,{[f]:nd});
           if(error){if(error.code==='23P01')toastOv(l.asset_id,side==='l'?nd:l.delivery_date,side==='r'?nd:l.end_date,l.id);else toast(msg(error))}
           else if(!data.length)toast('Modified in the meantime by someone else: data reloaded, please retry.');
         }else{
@@ -1124,27 +1137,27 @@ function pieSvg(data){
     a0=a1});
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:300px">${out}</svg><div class="lg">${data.map(x=>`<span><i style="background:${x.c};${x.c==='#e3eadf'?'border:1px solid #bfc8ba;box-sizing:border-box;':''}"></i>${esc(x.l)} <b>${nfmt(x.v)}</b> (${nfmt(Math.round(x.v/tot*1000)/10)}%)</span>`).join('')}</div>`;
 }
-function barsSvg(items){const BW=130,L0=48,T0=22,Hh=200,n=items.length,W=L0+n*BW+10,mx=Math.max(1,...items.map(x=>x[1])),step=[1,2,5,10,20,25,50,100,200,500,1000,2000,5000].find(x=>mx/x<=6)||10000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,wr=(t,m)=>{const o=[];let c='';t.split(' ').forEach(w=>{if((c+' '+w).trim().length>m&&c){o.push(c);c=w}else c=(c+' '+w).trim()});if(c)o.push(c);return o};
-  let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--grey)">${nfmt(v)}</text>`;
-  const mxl=Math.max(...items.map(x=>wr(x[0],19).length));
-  items.forEach((it,i)=>{const x=L0+i*BW+20,w=BW-40,val=Math.round(it[1]*10)/10;g+=`<rect x="${x}" y="${y(it[1])}" width="${w}" height="${Math.max(0,y(0)-y(it[1]))}" fill="${it[2]}"><title>${esc(it[0])}: ${nfmt(val,{maximumFractionDigits:1})} h</title></rect><text x="${x+w/2}" y="${y(it[1])-5}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">${nfmt(val,{maximumFractionDigits:1})}</text><text x="${x+w/2}" y="${y(0)+16}" text-anchor="middle" font-size="11" fill="var(--ink)">${wr(trStr(it[0]),19).map((l,k)=>`<tspan x="${x+w/2}" dy="${k?13:0}">${esc(l)}</tspan>`).join('')}</text>`});
-  const H=T0+Hh+22+mxl*13+6;
-  return `<div style="width:100%"><svg viewBox="0 0 ${W} ${H}" style="display:block;margin:0 auto;width:100%;max-width:${W}px;height:auto">${g}<text x="12" y="${T0+Hh/2}" transform="rotate(-90 12 ${T0+Hh/2})" text-anchor="middle" font-size="11" fill="var(--grey)">${esc(trStr('Hours'))}</text></svg></div>`}
+function barsSvg(items){const BW=112,L0=50,T0=22,Hh=200,n=items.length,W=L0+n*BW+10,mx=Math.max(1,...items.map(x=>x[1])),step=[1,2,5,10,20,25,50,100,200,500,1000,2000,5000].find(x=>mx/x<=6)||10000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,wr=(t,m)=>{const o=[];let c='';t.split(' ').forEach(w=>{if((c+' '+w).trim().length>m&&c){o.push(c);c=w}else c=(c+' '+w).trim()});if(c)o.push(c);return o};
+  let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+4}" text-anchor="end" font-size="14" fill="var(--grey)">${nfmt(v)}</text>`;
+  const mxl=Math.max(...items.map(x=>wr(x[0],13).length));
+  items.forEach((it,i)=>{const x=L0+i*BW+16,w=BW-32,val=Math.round(it[1]*10)/10;g+=`<rect x="${x}" y="${y(it[1])}" width="${w}" height="${Math.max(0,y(0)-y(it[1]))}" fill="${it[2]}"><title>${esc(it[0])}: ${nfmt(val,{maximumFractionDigits:1})} h</title></rect><text x="${x+w/2}" y="${y(it[1])-5}" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">${nfmt(val,{maximumFractionDigits:1})}</text><text x="${x+w/2}" y="${y(0)+19}" text-anchor="middle" font-size="14" fill="var(--ink)">${wr(trStr(it[0]),13).map((l,k)=>`<tspan x="${x+w/2}" dy="${k?17:0}">${esc(l)}</tspan>`).join('')}</text>`});
+  const H=T0+Hh+22+mxl*17+8;
+  return `<div style="width:100%"><svg viewBox="0 0 ${W} ${H}" style="display:block;margin:0 auto;width:100%;max-width:${W}px;height:auto">${g}<text x="12" y="${T0+Hh/2}" transform="rotate(-90 12 ${T0+Hh/2})" text-anchor="middle" font-size="14" fill="var(--grey)">${esc(trStr('Hours'))}</text></svg></div>`}
 const PMC=['#d4652f','#3b83bd','#4a9d8f','#8a6bb0','#e0a526','#6b7f8f','#c2467a','#7aa63c','#2f6f9f','#b5523b','#9aa88a','#5a55cc'];
 function histSvg(items,col,unit){const n=items.length;if(!n)return '<p class="inf">No data.</p>';
-  const BW=Math.min(84,Math.max(50,Math.floor(420/n))),L0=34,T0=18,Hh=170,mx=Math.max(1,...items.map(x=>x.v)),step=[1,2,5,10,20,25,50,100,200,500].find(x=>mx/x<=5)||1000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,mxl=Math.max(...items.map(x=>x.l.length)),B=Math.round(14+Math.sin(50*Math.PI/180)*Math.min(mxl,22)*6+10),W=L0+n*BW+14;
-  let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--grey)">${v}</text>`;
+  const BW=Math.min(84,Math.max(50,Math.floor(420/n))),L0=42,T0=18,Hh=170,mx=Math.max(1,...items.map(x=>x.v)),step=[1,2,5,10,20,25,50,100,200,500].find(x=>mx/x<=5)||1000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,mxl=Math.max(...items.map(x=>x.l.length)),B=Math.round(14+Math.sin(50*Math.PI/180)*Math.min(mxl,22)*7.6+12),W=L0+n*BW+14+Math.round(Math.min(mxl,22)*4.9);
+  let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+4}" text-anchor="end" font-size="14" fill="var(--grey)">${v}</text>`;
   items.forEach((it,i)=>{const x=L0+i*BW+8,w=Math.min(BW-16,48),nm=it.l.length>22?it.l.slice(0,21)+'…':it.l;
-    g+=`<rect x="${x}" y="${y(it.v)}" width="${w}" height="${Math.max(0,y(0)-y(it.v))}" fill="${col}"><title>${esc(it.l)}: ${it.v} ${unit}</title></rect><text x="${x+w/2}" y="${y(it.v)-4}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${it.v}</text><g transform="translate(${x+w/2+4},${y(0)+10}) rotate(50)"><text font-size="11" fill="var(--ink)">${esc(nm)}</text></g>`});
+    g+=`<rect x="${x}" y="${y(it.v)}" width="${w}" height="${Math.max(0,y(0)-y(it.v))}" fill="${col}"><title>${esc(it.l)}: ${it.v} ${unit}</title></rect><text x="${x+w/2}" y="${y(it.v)-4}" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">${it.v}</text><g transform="translate(${x+w/2+4},${y(0)+10}) rotate(50)"><text font-size="14" fill="var(--ink)">${esc(nm)}</text></g>`});
   return `<div style="width:100%"><svg viewBox="0 0 ${W} ${T0+Hh+B}" style="display:block;margin:0 auto;width:100%;max-width:${W}px;height:auto">${g}</svg></div>`}
 function histStk(items,types,unit){const n=items.length,k=types.length;if(!n)return '<p class="inf">No data.</p>';
   // only the types that have a value are drawn (no hole): each group is as wide as its number of bars; the colour stays the one of the type
-  const bw=16,L0=34,T0=18,Hh=170,mx=Math.max(1,...items.map(x=>Math.max(...types.map(t=>x.by[t]||0)))),step=[1,2,5,10,20,25,50,100,200,500].find(x=>mx/x<=5)||1000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,mxl=Math.max(...items.map(x=>x.l.length)),B=Math.round(14+Math.sin(50*Math.PI/180)*Math.min(mxl,22)*6+10);
-  const G=items.map(it=>types.map((t,j)=>({t,j,q:it.by[t]||0})).filter(z=>z.q>0)),SW=G.map(g=>Math.max(1,g.length)*bw+18),W=L0+SW.reduce((a,b)=>a+b,0)+14;
-  let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--grey)">${v}</text>`;
+  const bw=20,L0=42,T0=18,Hh=170,mx=Math.max(1,...items.map(x=>Math.max(...types.map(t=>x.by[t]||0)))),step=[1,2,5,10,20,25,50,100,200,500].find(x=>mx/x<=5)||1000,top=Math.ceil(mx/step)*step,y=v=>T0+Hh-v/top*Hh,mxl=Math.max(...items.map(x=>x.l.length)),B=Math.round(14+Math.sin(50*Math.PI/180)*Math.min(mxl,22)*7.6+12);
+  const G=items.map(it=>types.map((t,j)=>({t,j,q:it.by[t]||0})).filter(z=>z.q>0)),SW=G.map(g=>Math.max(1,g.length)*bw+18),W=L0+SW.reduce((a,b)=>a+b,0)+14+Math.round(Math.min(mxl,22)*4.9);
+  let g='';for(let v=0;v<=top;v+=step)g+=`<line x1="${L0}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L0-6}" y="${y(v)+4}" text-anchor="end" font-size="14" fill="var(--grey)">${v}</text>`;
   let xs=L0;items.forEach((it,i)=>{const x0=xs+9,nm=it.l.length>22?it.l.slice(0,21)+'…':it.l;
-    G[i].forEach((z,m)=>{const x=x0+m*bw;g+=`<rect x="${x}" y="${y(z.q)}" width="${bw}" height="${Math.max(0,y(0)-y(z.q))}" fill="${PMC[z.j%PMC.length]}"><title>${esc(it.l)} – ${esc(z.t)}: ${z.q} ${unit}</title></rect><text x="${x+bw/2}" y="${y(z.q)-3}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${z.q}</text>`});
-    g+=`<g transform="translate(${x0+G[i].length*bw/2+4},${y(0)+10}) rotate(50)"><text font-size="11" fill="var(--ink)">${esc(nm)}</text></g>`;xs+=SW[i]});
+    G[i].forEach((z,m)=>{const x=x0+m*bw;g+=`<rect x="${x}" y="${y(z.q)}" width="${bw}" height="${Math.max(0,y(0)-y(z.q))}" fill="${PMC[z.j%PMC.length]}"><title>${esc(it.l)} – ${esc(z.t)}: ${z.q} ${unit}</title></rect><text x="${x+bw/2}" y="${y(z.q)-3}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">${z.q}</text>`});
+    g+=`<g transform="translate(${x0+G[i].length*bw/2+4},${y(0)+10}) rotate(50)"><text font-size="14" fill="var(--ink)">${esc(nm)}</text></g>`;xs+=SW[i]});
   return `<div style="width:100%"><svg viewBox="0 0 ${W} ${T0+Hh+B}" style="display:block;margin:0 auto;width:100%;max-width:${W}px;height:auto">${g}</svg></div>`}
 const DSF={w:'dsw',k:'dsk',p:'dsp',q:'dsq'};
 function renderDashBody(){renderDashBody0();try{dsCols()}catch(_){}}
@@ -1266,7 +1279,7 @@ function renderDashBody0(){
     const hx=(k,title,recs,col,unit,flex)=>{const sel=new Set(S.prefs[DSF[k]]||[]),tp=ALT.filter(t=>sel.has(t)),by={};
       recs.filter(r=>!sel.size||sel.has(r.t)).forEach(r=>{const o=by[r.k]??={};o[r.t]=(o[r.t]||0)+1});
       const items=Object.entries(by).map(([l,o])=>({l,by:o,v:Object.values(o).reduce((a,b)=>a+b,0)})).filter(x=>x.v>0).sort((x,y)=>y.v-x.v||x.l.localeCompare(y.l));
-      const lg=tp.length>1?`<div style="display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;margin-top:6px;font-size:12px">${tp.map((t,i)=>`<span><i style="display:inline-block;width:11px;height:11px;background:${PMC[i%PMC.length]};margin-right:5px;vertical-align:-1px"></i>${esc(t)}</span>`).join('')}</div>`:'';
+      const lg=tp.length>1?`<div style="display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;margin-top:6px;font-size:14px">${tp.map((t,i)=>`<span><i style="display:inline-block;width:11px;height:11px;background:${PMC[i%PMC.length]};margin-right:5px;vertical-align:-1px"></i>${esc(t)}</span>`).join('')}</div>`:'';
       return `<div class="dc" style="flex:${flex};min-width:0;margin-bottom:0;display:flex;flex-direction:column"><h4>${title}</h4><div style="margin:2px 0 6px;text-align:left"><span id="dsf_${k}">${msHtml(k,'Asset type',ALT.map(x=>[x,x]),[...sel],false)}</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0">${tp.length>1?histStk(items,tp,unit):histSvg(items,col,unit)}${lg}</div></div>`};
     const wfind=n=>wsl.find(w=>norm(w)===norm(n));
     const hWa=hx('w','Assets by workshop',live.map(a=>({k:wfind(locOf(a)),t:a.asset_type})).filter(r=>r.k),'#d4652f','asset(s)','1 1 300px');
@@ -1723,7 +1736,7 @@ $('#wsp').onchange=async e=>{
   if(f==='end_date'&&!l.end_confirmed&&!l.transfer_to_next&&rlT(S.PJ[l.project_id]?.project_type)&&val<=TODAY){   // today or past: confirmed at the same time
     if(S.PJ[l.project_id].project_type==='Maintenance'){if(!(await askYN('End date to be confirmed',`The End date (<b>${fr(val)}</b>) is today or in the past: it must be confirmed now, otherwise it is automatically postponed by one day each time the current date is reached.<br>Confirm the End date?`,'Confirm','Cancel')))return renderWs();pay={end_date:val,end_confirmed:true}}
     else{const w=await askWsFlow(val,S.PJ[l.project_id].project_type==='Rental');if(!w)return renderWs();pay={end_date:val,end_confirmed:true,returned_to:w.ws,return_date:w.rd||null}}}
-  const{data,error}=await sb.from('project_assets').update(pay).eq('id',l.id).eq('version',l.version).select();
+  const{data,error}=await verUpd('project_assets',l,pay);
   if(error){if(error.code==='23P01')toastOv(l.asset_id,f==='delivery_date'?val:l.delivery_date,f==='end_date'?val:l.end_date,l.id);else toast(msg(error));return load()}
   if(!data.length){toast('Modified in the meantime by someone else: data reloaded, please retry.');return load()}
   Object.assign(l,data[0]);toast('Saved.');load();
